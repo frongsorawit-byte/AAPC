@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATIPA Member Card</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 400px;
+      margin: 0 auto;
+      background: #f5f5f5;
+    }
+    #debug {
+      background: #1a1a1a;
+      color: #0f0;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    #main-content { display: none; }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .profile { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .profile img { width: 56px; height: 56px; border-radius: 50%; border: 2px solid #d4af37; object-fit: cover; }
+    .name { font-weight: bold; font-size: 16px; }
+    .uid { font-size: 11px; color: #888; }
+    .points-label { color: #666; font-size: 13px; }
+    .points-value { font-size: 36px; font-weight: bold; color: #d4af37; }
+    label { display: block; font-size: 13px; color: #555; margin: 12px 0 4px; }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      background: #d4af37;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    #status-msg {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      display: none;
+    }
+    .success { background: #d4edda; color: #155724; }
+    .error-msg { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+
+  <div id="debug">กำลัง init LIFF...</div>
+
+  <div id="main-content">
+    <div class="card">
+      <div class="profile">
+        <img id="user-pic" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Crect width='56' height='56' rx='28' fill='%23ddd'/%3E%3Ctext x='28' y='38' text-anchor='middle' font-size='28' fill='%23999'%3E%3F%3C/text%3E%3C/svg%3E">
+        <div>
+          <div class="name" id="user-name">กำลังโหลด...</div>
+          <div class="uid">LINE ID: <span id="user-id">-</span></div>
+        </div>
+      </div>
+      <div class="points-label">แต้มสะสมทั้งหมด</div>
+      <div class="points-value">1,250</div>
+    </div>
+
+    <div class="card">
+      <label>เลขที่คำสั่งซื้อ (Order ID)</label>
+      <input type="text" id="order-id" placeholder="เช่น 583650970173408913">
+
+      <label>เลขพัสดุ (Tracking Number)</label>
+      <input type="text" id="tracking-no" placeholder="เช่น TH123456789">
+
+      <button id="submit-btn" onclick="sendData()">แจ้งข้อมูลออเดอร์</button>
+      <div id="status-msg"></div>
+    </div>
+  </div>
+
+  <script>
+    const LIFF_ID  = "2009964236-KUoNM2sL";
+    const GAS_URL  = "https://script.google.com/macros/s/AKfycbysUuIsRaK17J9MXSOQN909CxVrDMfnEiYqGnldnpH_KYdMdQAVYqqE-CHV6T_Ck-BpIQ/exec";
+
+    let profileData = {};
+
+    function log(msg) {
+      document.getElementById('debug').textContent += '\n' + msg;
+      console.log(msg);
+    }
+
+    function showMain() {
+      document.getElementById('debug').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+    }
+
+    function showStatus(msg, type) {
+      const el = document.getElementById('status-msg');
+      el.textContent = msg;
+      el.className = type === 'success' ? 'success' : 'error-msg';
+      el.style.display = 'block';
+    }
+
+    async function init() {
+      try {
+        log('1. liff.init() ...');
+        await liff.init({ liffId: LIFF_ID });
+        log('2. init OK | isInClient=' + liff.isInClient() + ' | isLoggedIn=' + liff.isLoggedIn());
+
+        if (!liff.isLoggedIn()) {
+          log('3. กำลัง redirect ไป LINE login...');
+          liff.login();
+          return;
+        }
+
+        log('3. ดึง profile...');
+        const profile = await liff.getProfile();
+        profileData = profile;
+        log('4. OK: ' + profile.displayName);
+
+        document.getElementById('user-name').textContent = profile.displayName;
+        document.getElementById('user-id').textContent   = profile.userId.substring(0, 12) + '...';
+        if (profile.pictureUrl) {
+          document.getElementById('user-pic').src = profile.pictureUrl;
+        }
+
+        showMain();
+
+      } catch (err) {
+        log('ERROR: ' + err.message);
+        // Fallback — แสดง UI ในโหมด guest ให้ยังกรอกข้อมูลได้
+        document.getElementById('user-name').textContent = 'Guest';
+        showMain();
+      }
+    }
+
+    async function sendData() {
+      const order = document.getElementById('order-id').value.trim();
+      const track = document.getElementById('tracking-no').value.trim();
+
+      if (!order && !track) {
+        showStatus('กรุณากรอกข้อมูลอย่างน้อย 1 ช่อง', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.textContent = 'กำลังบันทึก...';
+      btn.disabled = true;
+      showStatus('', '');
+
+      const payload = {
+        userId:         profileData.userId       || 'GUEST',
+        displayName:    profileData.displayName  || 'Guest',
+        pictureUrl:     profileData.pictureUrl   || '',
+        orderId:        order,
+        trackingNumber: track
+      };
+
+      try {
+        // Content-Type: text/plain หลีกเลี่ยง CORS preflight กับ GAS
+        const res = await fetch(GAS_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body:    JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+
+        const result = await res.json();
+        if (result.status !== 'success') throw new Error(result.message || 'unknown error');
+
+        showStatus('บันทึกข้อมูลเรียบร้อยแล้วค่ะ!', 'success');
+        document.getElementById('order-id').value   = '';
+        document.getElementById('tracking-no').value = '';
+
+        if (typeof liff !== 'undefined' && liff.isInClient()) {
+          setTimeout(() => liff.closeWindow(), 1500);
+        }
+
+      } catch (err) {
+        showStatus('เกิดข้อผิดพลาด: ' + err.message, 'error');
+      } finally {
+        btn.textContent = 'แจ้งข้อมูลออเดอร์';
+        btn.disabled = false;
+      }
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
