@@ -1,50 +1,109 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ATIPA — Member</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Montserrat:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
-      --black:      #0A0A0A;
-      --grey-800:   #2C2C2C;
-      --grey-600:   #555555;
-      --grey-400:   #909090;
-      --grey-200:   #C8C8C8;
-      --grey-100:   #E8E8E8;
-      --grey-50:    #F4F4F4;
-      --caramel:    #B8834E;
+      --black: #0A0A0A;
+      --grey-800: #2C2C2C;
+      --grey-600: #555555;
+      --grey-400: #909090;
+      --grey-200: #C8C8C8;
+      --grey-100: #E8E8E8;
+      --grey-50: #F4F4F4;
+      --caramel: #B8834E;
       --caramel-lt: #F3EAD9;
-      --warm-50:    #FAF5EE;
-      --parchment:  #F7F3EC;
-      --white:      #FFFFFF;
-      --ease:       cubic-bezier(0.25, 0.1, 0.25, 1);
+      --parchment: #F7F3EC;
+      --white: #FFFFFF;
+      --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+      --body-bg: #D1D1D1;
+      --success-bg: #E6F4EA;
+      --success-text: #1E7E34;
+      --pending-bg: #FFF4E5;
+      --pending-text: #B26A06;
+      --error-bg: #FDF2F2;
+      --error-text: #7B2020;
+      --card-top-bg: #602E2E;
+    }
+
+    body.dark-theme {
+      --black: #F4F4F4;
+      --white: #1A1A1A;
+      --parchment: #0D0D0D;
+      --grey-800: #E8E8E8;
+      --grey-600: #C8C8C8;
+      --grey-400: #6c6868;
+      --grey-200: #555555;
+      --grey-100: #2C2C2C;
+      --grey-50: #222222;
+      --caramel: #b0aba6;
+      --caramel-lt: #3A2B1C;
+      --body-bg: #050505;
+      --success-bg: rgba(129, 199, 132, 0.15);
+      --success-text: #81C784;
+      --pending-bg: rgba(255, 183, 77, 0.15);
+      --pending-text: #FFB74D;
+      --error-bg: rgba(220, 80, 80, 0.15);
+      --error-text: #FF8A80;
+      --card-top-bg: #c4925a;
     }
 
     body {
       font-family: 'Montserrat', sans-serif;
       font-weight: 300;
-      background: var(--parchment);
+      background: var(--body-bg);
       color: var(--black);
-      max-width: 430px;
-      margin: 0 auto;
+      margin: 0;
       min-height: 100vh;
+      display: flex;
+      justify-content: center;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Loading ── */
+    body,
+    #app-container,
+    .card,
+    .page-header,
+    #tab-bar,
+    .card-top,
+    .history-item,
+    .text-input,
+    .btn-primary,
+    .progress-fill,
+    .progress-track,
+    .status-pill,
+    .scan-btn {
+      transition: background-color 0.5s var(--ease), color 0.5s var(--ease), border-color 0.5s var(--ease);
+    }
+
+    /* ── Loading Screen ── */
     #loading-screen {
-      position: fixed; inset: 0;
+      position: fixed;
+      inset: 0;
       background: var(--parchment);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 20px; z-index: 99;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 9999;
     }
     .loader-wordmark {
       font-family: 'Cormorant Garamond', serif;
@@ -54,66 +113,162 @@
       color: var(--black);
     }
     .loader-bar {
-      width: 48px; height: 1px;
+      width: 48px;
+      height: 1px;
       background: var(--grey-200);
-      position: relative; overflow: hidden;
+      position: relative;
+      overflow: hidden;
     }
     .loader-bar::after {
       content: '';
-      position: absolute; top: 0; left: -100%;
-      width: 100%; height: 100%;
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
       background: var(--black);
       animation: slide 1.2s var(--ease) infinite;
     }
     @keyframes slide { to { left: 100%; } }
 
-    /* ── App Shell ── */
-    #app { display: none; }
+    /* ── Mobile Container ── */
+    #app-container {
+      width: 100%;
+      max-width: 430px;
+      background: var(--parchment);
+      min-height: 100vh;
+      position: relative;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+      overflow-x: hidden;
+      display: none;
+    }
+
+    /* ── Dev Banner ── */
+    #dev-banner {
+      display: none;
+      background: #ff6b35;
+      color: #fff;
+      text-align: center;
+      padding: 4px 0;
+      font-size: 11px;
+      font-family: monospace;
+      letter-spacing: .5px;
+    }
 
     /* ── Tab Bar ── */
     #tab-bar {
-      position: fixed; bottom: 0;
-      width: 100%; max-width: 430px;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      max-width: 430px;
       display: flex;
       background: var(--white);
       border-top: 1px solid var(--grey-100);
-      z-index: 10;
+      z-index: 100;
     }
+
     .tab-btn {
-      flex: 1; padding: 12px 4px 10px;
-      border: none; background: none;
+      flex: 1;
+      padding: 14px 4px 12px;
+      border: none;
+      background: none;
       font-family: 'Montserrat', sans-serif;
-      font-size: 8px; font-weight: 500;
+      font-size: 11px;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
       color: var(--grey-400);
       cursor: pointer;
-      transition: color 250ms var(--ease);
+      transition: all 0.3s var(--ease);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
     }
-    .tab-btn.active { color: var(--black); }
-    .tab-icon { display: block; font-size: 16px; margin-bottom: 3px; }
+
+    .tab-btn.active {
+      color: var(--black);
+    }
+
+    .tab-icon {
+      font-size: 23px;
+    }
 
     /* ── Pages ── */
-    .page { display: none; padding: 0 0 80px; min-height: 100vh; }
-    .page.active { display: block; }
+    .page {
+      display: none;
+      padding: 0 0 100px;
+      min-height: 100vh;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to   { opacity: 1; transform: translateY(0);   }
+    }
+
+    body.dark-theme .moon-icon { display: none !important; }
+    body.dark-theme .sun-icon  { display: block !important; }
+
+    .theme-toggle-floating {
+      position: fixed;
+      bottom: 80px;
+      right: calc(50% - 195px);
+      background: var(--black);
+      color: var(--white);
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 9999;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    @media (max-width: 460px) {
+      .theme-toggle-floating { right: 20px; }
+    }
+
+    .theme-toggle-floating:active { transform: scale(0.95); }
 
     /* ── Page Header ── */
     .page-header {
-      padding: 20px 20px 16px;
+      padding: 24px 20px 18px;
       border-bottom: 1px solid var(--grey-100);
       background: var(--white);
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      gap: 4px;
     }
-    .page-title {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 9px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.18em;
-      color: var(--grey-600);
-    }
+
     .wordmark {
       font-family: 'Cormorant Garamond', serif;
-      font-weight: 300; font-size: 18px;
-      letter-spacing: 0.18em; color: var(--black);
+      font-weight: 400;
+      font-size: 29px;
+      letter-spacing: 0.25em;
+      color: var(--black);
+      line-height: 1.2;
+    }
+
+    .page-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--grey-400);
     }
 
     /* ── Cards ── */
@@ -121,733 +276,1027 @@
       background: var(--white);
       margin: 16px;
       padding: 20px;
+      border-radius: 4px;
     }
 
     /* ── Member Card ── */
     #member-card {
-      margin: 16px;
+      margin: 20px 16px;
       background: var(--white);
-      padding: 0;
       overflow: hidden;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
     }
+
     .card-top {
-      background: var(--black);
-      padding: 24px 20px 20px;
+      background: var(--card-top-bg);
+      padding: 24px 24px 24px;
       position: relative;
     }
+
     .card-top-label {
-      font-size: 8px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.18em;
-      color: var(--grey-400); margin-bottom: 16px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--grey-400);
+      margin-bottom: 20px;
     }
+
     .profile-row {
-      display: flex; align-items: center; gap: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
+
     .profile-pic {
-      width: 44px; height: 44px;
-      border-radius: 0;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
       border: 1px solid var(--grey-800);
       object-fit: cover;
-      background: var(--grey-800);
+      background: var(--grey-600);
     }
-    .profile-info { flex: 1; }
+
+    .profile-info { flex: 1; min-width: 0; }
+
     .profile-name {
       font-family: 'Cormorant Garamond', serif;
-      font-weight: 300; font-size: 20px;
-      color: var(--white); letter-spacing: 0.02em;
+      font-weight: 400;
+      font-size: 26px;
+      color: var(--white);
+      letter-spacing: 0.02em;
       line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+
     .profile-sub {
-      font-size: 9px; font-weight: 400;
-      color: var(--grey-400); letter-spacing: 0.08em;
-      margin-top: 2px;
+      font-size: 12px;
+      color: var(--grey-400);
+      margin-top: 4px;
     }
+
     .tier-pill {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 8px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.12em;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
       background: var(--caramel);
       color: var(--white);
-      padding: 4px 10px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      flex-shrink: 0;
       align-self: flex-start;
     }
-    .card-bottom { padding: 20px; }
+
+    .card-bottom { padding: 24px; }
+
     .points-label {
-      font-size: 8px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.18em;
-      color: var(--grey-400); margin-bottom: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--grey-400);
+      margin-bottom: 8px;
+      text-align: center;
     }
+
+    .points-display { text-align: center; min-height: 84px; }
+
     .points-value {
       font-family: 'Cormorant Garamond', serif;
-      font-weight: 300; font-size: 56px;
-      color: var(--black); line-height: 1;
-      letter-spacing: -0.01em;
-    }
-    .points-unit {
-      font-size: 11px; font-weight: 400;
-      color: var(--grey-400); letter-spacing: 0.06em;
-      margin-left: 4px; vertical-align: baseline;
-    }
-    .progress-section { margin-top: 16px; }
-    .progress-track {
-      height: 1px; background: var(--grey-100);
-      margin: 8px 0; position: relative;
-    }
-    .progress-fill {
-      position: absolute; top: 0; left: 0; height: 100%;
-      background: var(--black);
-      transition: width 600ms var(--ease);
-    }
-    .progress-labels {
-      display: flex; justify-content: space-between;
-      font-size: 9px; font-weight: 500;
-      color: var(--grey-400); letter-spacing: 0.08em;
-    }
-    .progress-next {
-      font-size: 10px; font-weight: 300;
-      color: var(--grey-600); margin-top: 2px;
+      font-weight: 300;
+      font-size: 76px;
+      color: var(--black);
+      line-height: 1;
     }
 
-    /* ── Tier Guide (on dashboard) ── */
-    .tier-guide { margin: 0 16px 16px; }
+    .points-unit {
+      font-size: 14px;
+      color: var(--grey-400);
+      margin-left: 6px;
+    }
+
+    .progress-section { margin-top: 24px; }
+
+    .progress-track {
+      height: 2px;
+      background: var(--grey-100);
+      position: relative;
+      margin: 12px 0;
+    }
+
+    .progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: var(--black);
+      transition: width 1s ease;
+    }
+
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--grey-600);
+    }
+
+    .progress-label {
+      font-size: 12px;
+      color: var(--grey-400);
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* ── Tier Guide ── */
     .tier-guide-title {
-      font-size: 8px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.18em;
-      color: var(--grey-400); margin-bottom: 10px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--grey-400);
+      margin-bottom: 12px;
     }
+
     .tier-row {
-      display: flex; align-items: baseline; justify-content: space-between;
-      padding: 8px 0; border-bottom: 1px solid var(--grey-100);
-      font-size: 12px; font-weight: 300; color: var(--grey-600);
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--grey-100);
     }
+
     .tier-row:last-child { border-bottom: none; }
+
     .tier-name {
       font-family: 'Cormorant Garamond', serif;
-      font-size: 16px; font-weight: 400; color: var(--black);
-    }
-    .tier-range {
-      font-size: 10px; font-weight: 400; color: var(--grey-400);
-      letter-spacing: 0.06em;
-    }
-    .tier-active .tier-name { color: var(--caramel); }
-
-    /* ── Collect Tab ── */
-    .section-label {
-      font-size: 8px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.18em;
-      color: var(--grey-400); margin-bottom: 10px;
-    }
-    .input-group { margin-bottom: 16px; }
-    .input-label {
-      display: block; font-size: 9px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.12em;
-      color: var(--grey-600); margin-bottom: 6px;
-    }
-    .input-wrapper { position: relative; }
-    .text-input {
-      width: 100%; height: 44px;
-      border: 1px solid var(--grey-200);
-      background: var(--white);
-      padding: 0 14px;
-      font-family: 'Montserrat', sans-serif;
-      font-size: 13px; font-weight: 300;
-      color: var(--black);
-      outline: none;
-      transition: border-color 250ms var(--ease);
-    }
-    .text-input::placeholder { color: var(--grey-200); }
-    .text-input:focus { border-color: var(--black); }
-    .scan-btn {
-      position: absolute; right: 0; top: 0;
-      width: 44px; height: 44px;
-      border: none; border-left: 1px solid var(--grey-200);
-      background: var(--grey-50);
-      cursor: pointer; display: flex;
-      align-items: center; justify-content: center;
       font-size: 18px;
-      transition: background 250ms var(--ease);
-    }
-    .scan-btn:hover { background: var(--grey-100); }
-    .scan-btn.hidden { display: none; }
-    .input-wrapper.has-scan .text-input { padding-right: 50px; }
-    .divider-or {
-      display: flex; align-items: center; gap: 12px;
-      margin: 4px 0 16px;
-      font-size: 9px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.12em;
-      color: var(--grey-400);
-    }
-    .divider-or::before, .divider-or::after {
-      content: ''; flex: 1; height: 1px;
-      background: var(--grey-100);
-    }
-    .btn-primary {
-      display: block; width: 100%; height: 44px;
-      background: var(--black); border: none; color: var(--white);
-      font-family: 'Montserrat', sans-serif;
-      font-size: 10px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.14em;
-      cursor: pointer;
-      transition: background 250ms var(--ease), opacity 250ms;
-    }
-    .btn-primary:hover:not(:disabled) { background: var(--grey-800); }
-    .btn-primary:disabled { background: var(--grey-100); color: var(--grey-400); cursor: not-allowed; }
-    .status-msg {
-      margin-top: 12px; padding: 12px 14px;
-      font-size: 12px; font-weight: 300;
-      display: none;
-    }
-    .status-msg.success { background: #F0F7F2; color: #2D6A4F; }
-    .status-msg.error   { background: #FDF2F2; color: #7B2020; }
-    .note-text {
-      margin-top: 12px; font-size: 10px; font-weight: 300;
-      color: var(--grey-400); line-height: 1.6;
+      font-weight: 400;
+      color: var(--black);
     }
 
-    /* ── History Tab ── */
-    .history-empty {
-      padding: 48px 20px; text-align: center;
-      font-size: 12px; font-weight: 300; color: var(--grey-400);
-    }
-    .history-item {
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--grey-100);
-      display: flex; align-items: flex-start;
-      justify-content: space-between; gap: 12px;
-    }
-    .history-ref {
-      font-size: 12px; font-weight: 400; color: var(--black);
-      margin-bottom: 2px; word-break: break-all;
-    }
-    .history-date {
-      font-size: 10px; font-weight: 300; color: var(--grey-400);
-    }
-    .history-reason {
-      font-size: 10px; font-weight: 300; color: var(--grey-400);
+    .tier-name-sub {
+      font-size: 11px;
+      font-weight: 300;
+      color: var(--grey-600);
       margin-top: 2px;
     }
-    .status-pill {
-      flex-shrink: 0;
-      font-size: 8px; font-weight: 500;
-      text-transform: uppercase; letter-spacing: 0.10em;
-      padding: 3px 8px;
-    }
-    .status-รอตรวจ  { background: #FFF8EC; color: #8A5D0A; }
-    .status-ได้แต้ม { background: #F0F7F2; color: #2D6A4F; }
-    .status-ไม่ผ่าน { background: #FDF2F2; color: #7B2020; }
-    .status-ซ้ำ    { background: var(--grey-50); color: var(--grey-600); }
 
-    /* ── Info Tab ── */
-    .info-section { padding: 20px; border-bottom: 1px solid var(--grey-100); }
-    .info-heading {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 22px; font-weight: 300;
-      color: var(--black); margin-bottom: 12px;
+    .tier-range {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--grey-400);
+      letter-spacing: 0.06em;
     }
-    .info-body {
-      font-size: 12px; font-weight: 300;
-      color: var(--grey-600); line-height: 1.8;
-    }
-    .info-row {
-      display: flex; justify-content: space-between; align-items: baseline;
-      padding: 8px 0; border-bottom: 1px solid var(--grey-100);
-      font-size: 12px;
-    }
-    .info-row:last-child { border-bottom: none; }
-    .info-key { font-weight: 400; color: var(--black); }
-    .info-val { font-weight: 300; color: var(--grey-600); }
 
-    /* ── Skeleton loader ── */
+    .tier-active .tier-name { color: var(--caramel); }
+
+    /* ── Skeleton ── */
     .skeleton {
       background: linear-gradient(90deg, var(--grey-100) 25%, var(--grey-50) 50%, var(--grey-100) 75%);
       background-size: 200% 100%;
       animation: shimmer 1.4s ease infinite;
+      display: inline-block;
     }
+
     @keyframes shimmer { to { background-position: -200% 0; } }
-    .skeleton-line {
-      height: 12px; margin-bottom: 8px;
+    .skeleton-num { height: 56px; width: 140px; border-radius: 4px; }
+
+    /* ── Form (Collect Tab) ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--grey-400);
+      margin-bottom: 14px;
     }
-    .skeleton-num { height: 52px; width: 120px; }
+
+    .input-group { margin-bottom: 16px; }
+
+    .input-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--grey-600);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper { position: relative; }
+
+    .text-input {
+      width: 100%;
+      height: 48px;
+      padding: 0 16px;
+      border: 1px solid var(--grey-200);
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 300;
+      border-radius: 4px;
+      outline: none;
+      background: var(--grey-50);
+      color: var(--black);
+      transition: border-color 250ms var(--ease), background 250ms var(--ease);
+    }
+
+    .text-input::placeholder { color: var(--grey-400); }
+    .text-input:focus { border-color: var(--black); background: var(--white); }
+
+    .scan-btn {
+      position: absolute;
+      right: 4px;
+      top: 4px;
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 4px;
+      background: var(--grey-100);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--black);
+      transition: background 250ms var(--ease);
+    }
+
+    .scan-btn:hover { background: var(--grey-200); }
+    .scan-btn:active { transform: scale(0.95); }
+    .scan-btn.hidden { display: none; }
+    .scan-btn svg { width: 22px; height: 22px; stroke: currentColor; }
+    .input-wrapper.has-scan .text-input { padding-right: 56px; }
+
+    .divider-or {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 8px 0 16px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--grey-400);
+    }
+
+    .divider-or::before,
+    .divider-or::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--grey-100);
+    }
+
+    .btn-primary {
+      display: block;
+      width: 100%;
+      height: 48px;
+      background: var(--black);
+      color: var(--white);
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      cursor: pointer;
+      margin-top: 14px;
+      transition: background 250ms var(--ease), opacity 250ms;
+    }
+
+    .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+    .btn-primary:active:not(:disabled) { transform: scale(0.99); }
+    .btn-primary:disabled {
+      background: var(--grey-200);
+      color: var(--grey-400);
+      cursor: not-allowed;
+    }
+
+    .status-msg {
+      margin-top: 14px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 1.5;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .status-msg.success { background: var(--success-bg); color: var(--success-text); }
+    .status-msg.error   { background: var(--error-bg);   color: var(--error-text);   }
+
+    .note-text {
+      margin-top: 14px;
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--grey-400);
+      line-height: 1.6;
+    }
+
+    /* ── History ── */
+    .history-list { padding: 0; }
+    .history-empty {
+      padding: 60px 20px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--grey-400);
+    }
+
+    .history-item {
+      background: var(--white);
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--grey-100);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .history-main { flex: 1; min-width: 0; }
+    .history-ref {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--black);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+
+    .history-date {
+      font-size: 11px;
+      font-weight: 300;
+      color: var(--grey-400);
+    }
+
+    .history-reason {
+      font-size: 11px;
+      font-weight: 300;
+      color: var(--grey-400);
+      margin-top: 4px;
+    }
+
+    .status-pill {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      border-radius: 2px;
+    }
+
+    .status-pill-รอตรวจ  { background: var(--pending-bg); color: var(--pending-text); }
+    .status-pill-ได้แต้ม { background: var(--success-bg); color: var(--success-text); }
+    .status-pill-ไม่ผ่าน { background: var(--error-bg);   color: var(--error-text);   }
+    .status-pill-ซ้ำ    { background: var(--grey-100);    color: var(--grey-600);     }
+
+    /* ── Info Tab ── */
+    .info-section {
+      background: var(--white);
+      margin: 16px;
+      padding: 20px;
+      border-radius: 4px;
+    }
+
+    .info-heading {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--black);
+      margin-bottom: 12px;
+    }
+
+    .info-body {
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--grey-600);
+      line-height: 1.8;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--grey-100);
+    }
+
+    .info-row:last-child { border-bottom: none; }
+    .info-key { font-size: 13px; font-weight: 500; color: var(--black); }
+    .info-val { font-size: 12px; font-weight: 300; color: var(--grey-600); }
   </style>
 </head>
+
 <body>
 
-<!-- Loading Screen -->
-<div id="loading-screen">
-  <div class="loader-wordmark">ATIPA</div>
-  <div class="loader-bar"></div>
-</div>
-
-<!-- App -->
-<div id="app">
-
-  <!-- ── DASHBOARD ── -->
-  <div class="page active" id="page-dashboard">
-    <div class="page-header">
-      <span class="wordmark">ATIPA</span>
-      <span class="page-title">Member</span>
-    </div>
-
-    <!-- Member Card -->
-    <div id="member-card">
-      <div class="card-top">
-        <div class="card-top-label">ATIPA MEMBER CARD</div>
-        <div class="profile-row">
-          <img id="user-pic" class="profile-pic" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Crect width='44' height='44' fill='%232C2C2C'/%3E%3C/svg%3E" alt="profile">
-          <div class="profile-info">
-            <div class="profile-name" id="user-name">—</div>
-            <div class="profile-sub" id="user-sub">กำลังโหลด...</div>
-          </div>
-          <div class="tier-pill" id="tier-pill">—</div>
-        </div>
-      </div>
-      <div class="card-bottom">
-        <div class="points-label">POINTS</div>
-        <div id="points-display">
-          <div class="skeleton skeleton-num"></div>
-        </div>
-        <div class="progress-section" id="progress-section" style="display:none">
-          <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-          <div class="progress-labels">
-            <span id="progress-current-tier">—</span>
-            <span id="progress-next-tier">—</span>
-          </div>
-          <div class="progress-next" id="progress-label"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tier Guide -->
-    <div class="card tier-guide">
-      <div class="tier-guide-title">MEMBER TIERS</div>
-      <div class="tier-row" id="guide-silver">
-        <div>
-          <div class="tier-name">เงิน</div>
-          <div style="font-size:10px;font-weight:300;color:var(--grey-600)">Silver</div>
-        </div>
-        <div class="tier-range">0 – 499 คะแนน</div>
-      </div>
-      <div class="tier-row" id="guide-gold">
-        <div>
-          <div class="tier-name">ทอง</div>
-          <div style="font-size:10px;font-weight:300;color:var(--grey-600)">Gold</div>
-        </div>
-        <div class="tier-range">500 – 999 คะแนน</div>
-      </div>
-      <div class="tier-row" id="guide-diamond">
-        <div>
-          <div class="tier-name">เพชร</div>
-          <div style="font-size:10px;font-weight:300;color:var(--grey-600)">Diamond</div>
-        </div>
-        <div class="tier-range">1,000+ คะแนน</div>
-      </div>
-    </div>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loader-wordmark">ATIPA</div>
+    <div class="loader-bar"></div>
   </div>
 
-  <!-- ── COLLECT ── -->
-  <div class="page" id="page-collect">
-    <div class="page-header">
-      <span class="wordmark">ATIPA</span>
-      <span class="page-title">Collect</span>
+  <!-- App Container -->
+  <div id="app-container">
+
+    <!-- Dev Banner -->
+    <div id="dev-banner">DEV MODE — localhost</div>
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <span class="wordmark">ATIPA</span>
+        <span class="page-title">Member Card</span>
+      </div>
+
+      <div id="member-card">
+        <div class="card-top">
+          <div class="card-top-label">Exclusive Privilege</div>
+          <div class="profile-row">
+            <img id="user-pic" class="profile-pic"
+              src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50'%3E%3Crect width='50' height='50' fill='%232C2C2C'/%3E%3C/svg%3E"
+              alt="profile">
+            <div class="profile-info">
+              <div class="profile-name" id="user-name">—</div>
+              <div class="profile-sub" id="user-sub">กำลังโหลด...</div>
+            </div>
+            <div class="tier-pill" id="tier-pill">—</div>
+          </div>
+        </div>
+        <div class="card-bottom">
+          <div class="points-label">Total Points</div>
+          <div class="points-display" id="points-display">
+            <span class="skeleton skeleton-num"></span>
+          </div>
+          <div class="progress-section" id="progress-section" style="display:none">
+            <div class="progress-info">
+              <span id="progress-current-tier">—</span>
+              <span id="progress-next-tier">—</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+            </div>
+            <p class="progress-label" id="progress-label">—</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="tier-guide-title">ระดับสมาชิก</div>
+        <div class="tier-row" id="guide-silver">
+          <div>
+            <div class="tier-name">เงิน</div>
+            <div class="tier-name-sub">Silver</div>
+          </div>
+          <div class="tier-range">0 – 499 คะแนน</div>
+        </div>
+        <div class="tier-row" id="guide-gold">
+          <div>
+            <div class="tier-name">ทอง</div>
+            <div class="tier-name-sub">Gold</div>
+          </div>
+          <div class="tier-range">500 – 999 คะแนน</div>
+        </div>
+        <div class="tier-row" id="guide-diamond">
+          <div>
+            <div class="tier-name">เพชร</div>
+            <div class="tier-name-sub">Diamond</div>
+          </div>
+          <div class="tier-range">1,000+ คะแนน</div>
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <div class="section-label">สะสมคะแนน</div>
 
-      <div class="input-group">
-        <label class="input-label" for="collect-order">Order ID</label>
-        <div class="input-wrapper has-scan">
-          <input type="text" id="collect-order" class="text-input"
-            placeholder="เช่น 583650970173408913"
-            inputmode="numeric">
-          <button class="scan-btn hidden" id="scan-order-btn" onclick="scanBarcode('order')" title="สแกน">
-            ▤
-          </button>
+    <!-- ── COLLECT ── -->
+    <div class="page" id="page-collect">
+      <div class="page-header">
+        <span class="wordmark">ATIPA</span>
+        <span class="page-title">Collect Points</span>
+      </div>
+      <div class="card">
+        <div class="section-label">สะสมคะแนน</div>
+
+        <div class="input-group">
+          <label class="input-label" for="collect-order">Order ID</label>
+          <div class="input-wrapper has-scan">
+            <input type="text" id="collect-order" class="text-input"
+              placeholder="เช่น 583650970173408913" inputmode="numeric" autocomplete="off">
+            <button class="scan-btn hidden" id="scan-order-btn" onclick="scanBarcode('order')"
+              aria-label="สแกน Order ID" title="สแกน Order ID">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="divider-or">หรือ</div>
+
+        <div class="input-group">
+          <label class="input-label" for="collect-track">Tracking Number</label>
+          <div class="input-wrapper has-scan">
+            <input type="text" id="collect-track" class="text-input"
+              placeholder="เช่น TH123456789" autocomplete="off">
+            <button class="scan-btn" id="scan-track-btn" onclick="scanBarcode('track')"
+              aria-label="สแกน Barcode พัสดุ" title="สแกน Barcode พัสดุ">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="submit-btn" onclick="submitForm()">
+          บันทึกข้อมูล
+        </button>
+        <div id="collect-status" class="status-msg"></div>
+
+        <p class="note-text">
+          กรอก Order ID หรือ Tracking Number อย่างใดอย่างหนึ่ง — ระบบจะตรวจสอบภายใน 1–2 วันทำการ และแจ้งผลทาง LINE
+        </p>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div class="page" id="page-history">
+      <div class="page-header">
+        <span class="wordmark">ATIPA</span>
+        <span class="page-title">History</span>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty">กำลังโหลด...</div>
+      </div>
+    </div>
+
+    <!-- ── INFO ── -->
+    <div class="page" id="page-info">
+      <div class="page-header">
+        <span class="wordmark">ATIPA</span>
+        <span class="page-title">Information</span>
+      </div>
+
+      <div class="info-section">
+        <div class="info-heading">วิธีสะสมคะแนน</div>
+        <div class="info-body">
+          ทุกออเดอร์ที่มียอดสั่งซื้อ 200 บาทขึ้นไป รับ 1 คะแนน — ใช้ได้ทั้ง Order ID และ Tracking Number
+          ระบบตรวจสอบทุกวันและแจ้งผลทาง LINE ภายใน 1–2 วันทำการ
         </div>
       </div>
 
-      <div class="divider-or">หรือ</div>
-
-      <div class="input-group">
-        <label class="input-label" for="collect-track">Tracking Number</label>
-        <div class="input-wrapper has-scan">
-          <input type="text" id="collect-track" class="text-input"
-            placeholder="เช่น TH123456789">
-          <button class="scan-btn" id="scan-track-btn" onclick="scanBarcode('track')" title="สแกน Barcode">
-            ▤
-          </button>
+      <div class="info-section">
+        <div class="info-heading">เงื่อนไขคะแนน</div>
+        <div>
+          <div class="info-row">
+            <span class="info-key">ยอดขั้นต่ำ</span>
+            <span class="info-val">200 บาท / ออเดอร์</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">คะแนนต่อออเดอร์</span>
+            <span class="info-val">1 คะแนน</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">ออเดอร์ที่ยกเลิก</span>
+            <span class="info-val">ไม่ได้คะแนน</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">ออเดอร์ซ้ำ</span>
+            <span class="info-val">สะสมได้ครั้งเดียว</span>
+          </div>
         </div>
       </div>
 
-      <button class="btn-primary" id="submit-btn" onclick="sendData()">
-        บันทึกข้อมูล
+      <div class="info-section">
+        <div class="info-heading">ระดับสมาชิก</div>
+        <div>
+          <div class="info-row">
+            <span class="info-key">เงิน — Silver</span>
+            <span class="info-val">0 – 499 คะแนน</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">ทอง — Gold</span>
+            <span class="info-val">500 – 999 คะแนน</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">เพชร — Diamond</span>
+            <span class="info-val">1,000 คะแนนขึ้นไป</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <nav id="tab-bar">
+      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span class="tab-icon">◈</span><span>Home</span>
       </button>
-      <div id="collect-status" class="status-msg"></div>
+      <button class="tab-btn" data-tab="collect" onclick="switchTab('collect')">
+        <span class="tab-icon">✦</span><span>Collect</span>
+      </button>
+      <button class="tab-btn" data-tab="history" onclick="switchTab('history')">
+        <span class="tab-icon">◎</span><span>History</span>
+      </button>
+      <button class="tab-btn" data-tab="info" onclick="switchTab('info')">
+        <span class="tab-icon">○</span><span>Info</span>
+      </button>
+    </nav>
 
-      <p class="note-text">
-        กรอก Order ID หรือ Tracking Number อย่างใดอย่างหนึ่ง — ระบบจะตรวจสอบภายใน 1–2 วันทำการและแจ้งผลทาง LINE
-      </p>
-    </div>
+    <!-- Floating Theme Toggle -->
+    <button class="theme-toggle-floating" onclick="toggleTheme()" aria-label="Toggle Theme">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="moon-icon">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="sun-icon" style="display:none;">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+      </svg>
+    </button>
+
   </div>
 
-  <!-- ── HISTORY ── -->
-  <div class="page" id="page-history">
-    <div class="page-header">
-      <span class="wordmark">ATIPA</span>
-      <span class="page-title">History</span>
-    </div>
-    <div id="history-list">
-      <div class="history-empty">กำลังโหลด...</div>
-    </div>
-  </div>
+  <script>
+    // ╭──────────────────────────────────────────────────────────╮
+    // │  AAPC — ATIPA Member Card (LIFF)                          │
+    // │  Phase 1: UI Merge + Barcode Scan + Safe UX               │
+    // │  See: specs/AAPC-liff-devlog.md (ADR-005)                 │
+    // ╰──────────────────────────────────────────────────────────╯
 
-  <!-- ── INFO ── -->
-  <div class="page" id="page-info">
-    <div class="page-header">
-      <span class="wordmark">ATIPA</span>
-      <span class="page-title">Info</span>
-    </div>
+    // ── Config ──────────────────────────────────────────────────
+    const LIFF_ID = '2009964236-KUoNM2sL';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbybrZu2WyBmzgkc5rTEdC87uFihCHB0PYNjYA9mM0oNhs-Ic9mut68muxn_ombI0DBCPA/exec';
 
-    <div class="info-section">
-      <div class="info-heading">วิธีสะสมคะแนน</div>
-      <div class="info-body">
-        ทุกออเดอร์ที่มียอดสั่งซื้อ 200 บาทขึ้นไป รับ 1 คะแนน — ใช้ได้ทั้ง Order ID และ Tracking Number ระบบตรวจสอบทุกวันและแจ้งผลทาง LINE ภายใน 1–2 วันทำการ
-      </div>
-    </div>
-
-    <div class="info-section">
-      <div class="info-heading">เงื่อนไขคะแนน</div>
-      <div>
-        <div class="info-row">
-          <span class="info-key">ยอดขั้นต่ำ</span>
-          <span class="info-val">200 บาท / ออเดอร์</span>
-        </div>
-        <div class="info-row">
-          <span class="info-key">คะแนนต่อออเดอร์</span>
-          <span class="info-val">1 คะแนน</span>
-        </div>
-        <div class="info-row">
-          <span class="info-key">ออเดอร์ที่ยกเลิก</span>
-          <span class="info-val">ไม่ได้คะแนน</span>
-        </div>
-        <div class="info-row">
-          <span class="info-key">ออเดอร์ซ้ำ</span>
-          <span class="info-val">สะสมได้ครั้งเดียว</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="info-section">
-      <div class="info-heading">ระดับสมาชิก</div>
-      <div>
-        <div class="info-row">
-          <span class="info-key">เงิน — Silver</span>
-          <span class="info-val">0 – 499 คะแนน</span>
-        </div>
-        <div class="info-row">
-          <span class="info-key">ทอง — Gold</span>
-          <span class="info-val">500 – 999 คะแนน</span>
-        </div>
-        <div class="info-row">
-          <span class="info-key">เพชร — Diamond</span>
-          <span class="info-val">1,000 คะแนนขึ้นไป</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Tab Bar -->
-  <nav id="tab-bar">
-    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
-      <span class="tab-icon">◈</span>ATIPA
-    </button>
-    <button class="tab-btn" data-tab="collect" onclick="switchTab('collect')">
-      <span class="tab-icon">✦</span>COLLECT
-    </button>
-    <button class="tab-btn" data-tab="history" onclick="switchTab('history')">
-      <span class="tab-icon">◎</span>HISTORY
-    </button>
-    <button class="tab-btn" data-tab="info" onclick="switchTab('info')">
-      <span class="tab-icon">○</span>INFO
-    </button>
-  </nav>
-
-</div><!-- #app -->
-
-<script>
-  const LIFF_ID = '2009964236-KUoNM2sL';
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbybrZu2WyBmzgkc5rTEdC87uFihCHB0PYNjYA9mM0oNhs-Ic9mut68muxn_ombI0DBCPA/exec';
-
-  // ── State ──────────────────────────────────────────────────────────────────
-  const state = {
-    profile:    null,
-    gasProfile: null,
-    history:    null,  // null=not loaded
-  };
-
-  // ── API ────────────────────────────────────────────────────────────────────
-  const API = {
-    getProfile(userId) {
-      return fetch(`${GAS_URL}?action=getProfile&userId=${encodeURIComponent(userId)}&t=${Date.now()}`)
-        .then(r => r.json());
-    },
-    getHistory(userId) {
-      return fetch(`${GAS_URL}?action=getHistory&userId=${encodeURIComponent(userId)}&t=${Date.now()}`)
-        .then(r => r.json());
-    },
-    checkDuplicate(orderId, trackingNo) {
-      const p = new URLSearchParams({ action: 'checkDuplicate', t: Date.now() });
-      if (orderId)    p.set('orderId',    orderId);
-      if (trackingNo) p.set('trackingNo', trackingNo);
-      return fetch(`${GAS_URL}?${p}`).then(r => r.json());
-    },
-    submitOrder(payload) {
-      return fetch(GAS_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body:    JSON.stringify(payload),
-      }).then(r => r.json());
-    },
-  };
-
-  // ── Tab Navigation ─────────────────────────────────────────────────────────
-  function switchTab(tabName) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.tab === tabName);
-    });
-    document.getElementById('page-' + tabName).classList.add('active');
-
-    if (tabName === 'history' && state.history === null) loadHistory();
-  }
-
-  // ── Dashboard ──────────────────────────────────────────────────────────────
-  async function loadDashboard() {
-    if (!state.profile) return;
-    try {
-      state.gasProfile = await API.getProfile(state.profile.userId);
-      renderDashboard(state.gasProfile);
-    } catch (err) {
-      renderDashboardError();
-    }
-  }
-
-  function renderDashboard(p) {
-    const points = Number(p.points) || 0;
-
-    // Points number
-    document.getElementById('points-display').innerHTML =
-      `<span class="points-value">${points.toLocaleString()}</span><span class="points-unit">คะแนน</span>`;
-
-    // Tier pill
-    document.getElementById('tier-pill').textContent = p.tier || 'เงิน';
-
-    // Progress
-    const progressSection = document.getElementById('progress-section');
-    progressSection.style.display = 'block';
-
-    let pct;
-    if (p.tier === 'เพชร') {
-      pct = 100;
-    } else if (p.tier === 'ทอง') {
-      pct = Math.min(100, Math.round(((points - 500) / 500) * 100));
-    } else {
-      pct = Math.min(100, Math.round((points / 500) * 100));
-    }
-    document.getElementById('progress-fill').style.width = pct + '%';
-    document.getElementById('progress-current-tier').textContent = p.tier;
-
-    if (p.nextTierName) {
-      document.getElementById('progress-next-tier').textContent = p.nextTierName;
-      document.getElementById('progress-label').textContent =
-        `อีก ${Number(p.pointsToNext).toLocaleString()} คะแนน ถึงระดับ${p.nextTierName}`;
-    } else {
-      document.getElementById('progress-next-tier').textContent = '';
-      document.getElementById('progress-label').textContent = 'ระดับสูงสุด';
-    }
-
-    // Highlight active tier in guide
-    const tierMap = { 'เงิน': 'silver', 'ทอง': 'gold', 'เพชร': 'diamond' };
-    ['silver', 'gold', 'diamond'].forEach(t => {
-      document.getElementById('guide-' + t).classList.remove('tier-active');
-    });
-    const activeKey = tierMap[p.tier];
-    if (activeKey) document.getElementById('guide-' + activeKey).classList.add('tier-active');
-  }
-
-  function renderDashboardError() {
-    document.getElementById('points-display').innerHTML =
-      `<span style="font-size:12px;color:var(--grey-400);font-weight:300">ไม่สามารถโหลดข้อมูลได้</span>`;
-  }
-
-  // ── Collect ────────────────────────────────────────────────────────────────
-  async function sendData() {
-    const order = document.getElementById('collect-order').value.trim();
-    const track = document.getElementById('collect-track').value.trim();
-    const btn   = document.getElementById('submit-btn');
-
-    if (!order && !track) {
-      showCollectStatus('กรุณากรอก Order ID หรือ Tracking Number', 'error');
-      return;
-    }
-
-    btn.disabled    = true;
-    btn.textContent = 'กำลังตรวจสอบ...';
-    clearCollectStatus();
-
-    // Frontend duplicate check
-    try {
-      const dup = await API.checkDuplicate(order, track);
-      if (dup.isDuplicate) {
-        showCollectStatus('ออเดอร์นี้ถูกบันทึกไปแล้ว กรุณาตรวจสอบประวัติการสะสม', 'error');
-        resetSubmitBtn();
-        return;
-      }
-    } catch (_) {
-      // Fail open — proceed to submit
-    }
-
-    btn.textContent = 'กำลังบันทึก...';
-
-    const payload = {
-      userId:         state.profile?.userId       || 'GUEST',
-      displayName:    state.profile?.displayName  || 'Guest',
-      pictureUrl:     state.profile?.pictureUrl   || '',
-      orderId:        order,
-      trackingNumber: track,
+    // ── Dev Mode (localhost หรือ ?dev=1) ────────────────────────
+    const DEV_MODE = location.hostname === 'localhost' ||
+                     location.hostname === '127.0.0.1' ||
+                     new URLSearchParams(location.search).has('dev');
+    const DEV_PROFILE = {
+      userId:      'Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', // ← LINE userId จริง สำหรับเทสด้วย data จริง
+      displayName: 'Dev Test',
+      pictureUrl:  '',
     };
 
-    try {
-      const result = await API.submitOrder(payload);
-      if (result.status !== 'success') throw new Error(result.message || 'error');
+    // ── State ───────────────────────────────────────────────────
+    const state = {
+      profile:    null,
+      gasProfile: null,
+      history:    null,
+      submitting: false,
+    };
 
-      showCollectStatus(
-        'บันทึกเรียบร้อย — ระบบจะตรวจสอบและแจ้งผลทาง LINE ภายใน 1–2 วันทำการ',
-        'success'
-      );
-      document.getElementById('collect-order').value = '';
-      document.getElementById('collect-track').value = '';
-      state.history = null; // invalidate cache
-    } catch (err) {
-      showCollectStatus('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง', 'error');
-    }
+    // ── API ─────────────────────────────────────────────────────
+    const API = {
+      getProfile(userId) {
+        return fetch(`${GAS_URL}?action=getProfile&userId=${encodeURIComponent(userId)}&t=${Date.now()}`)
+          .then(r => r.json());
+      },
+      getHistory(userId) {
+        return fetch(`${GAS_URL}?action=getHistory&userId=${encodeURIComponent(userId)}&t=${Date.now()}`)
+          .then(r => r.json());
+      },
+      checkDuplicate(orderId, trackingNo) {
+        const p = new URLSearchParams({ action: 'checkDuplicate', t: Date.now() });
+        if (orderId)    p.set('orderId',    orderId);
+        if (trackingNo) p.set('trackingNo', trackingNo);
+        return fetch(`${GAS_URL}?${p}`).then(r => r.json());
+      },
+      submitOrder(payload) {
+        return fetch(GAS_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body:    JSON.stringify(payload),
+        }).then(r => r.json());
+      },
+    };
 
-    resetSubmitBtn();
-  }
+    // ── Validation (Phase 1: client-side; server validates again in Phase 2) ──
+    const VALIDATION = {
+      orderId: { pattern: /^\d{6,30}$/, msg: 'Order ID ต้องเป็นตัวเลข 6–30 หลัก' },
+      track:   { pattern: /^[A-Za-z0-9\-_.]{4,60}$/, msg: 'Tracking Number ไม่ถูกต้อง (4–60 ตัวอักษร/ตัวเลข)' },
+    };
 
-  function resetSubmitBtn() {
-    const btn = document.getElementById('submit-btn');
-    btn.disabled    = false;
-    btn.textContent = 'บันทึกข้อมูล';
-  }
-
-  function showCollectStatus(msg, type) {
-    const el = document.getElementById('collect-status');
-    el.textContent = msg;
-    el.className   = 'status-msg ' + type;
-    el.style.display = 'block';
-  }
-
-  function clearCollectStatus() {
-    const el = document.getElementById('collect-status');
-    el.style.display = 'none';
-  }
-
-  async function scanBarcode(target) {
-    if (!liff.isInClient()) return;
-    try {
-      const result = await liff.scanCodeV2();
-      if (result.value) {
-        const field = target === 'order'
-          ? document.getElementById('collect-order')
-          : document.getElementById('collect-track');
-        field.value = result.value;
-        field.focus();
+    function validateInputs(orderId, trackingNo) {
+      if (!orderId && !trackingNo) {
+        return { ok: false, msg: 'กรุณากรอก Order ID หรือ Tracking Number' };
       }
-    } catch (err) {
-      showCollectStatus('สแกนไม่สำเร็จ — กรุณากรอกด้วยตนเอง', 'error');
+      if (orderId && !VALIDATION.orderId.pattern.test(orderId)) {
+        return { ok: false, msg: VALIDATION.orderId.msg };
+      }
+      if (trackingNo && !VALIDATION.track.pattern.test(trackingNo)) {
+        return { ok: false, msg: VALIDATION.track.msg };
+      }
+      return { ok: true };
     }
-  }
 
-  // ── History ────────────────────────────────────────────────────────────────
-  async function loadHistory() {
-    if (!state.profile) return;
-    document.getElementById('history-list').innerHTML =
-      '<div class="history-empty">กำลังโหลด...</div>';
-
-    try {
-      state.history = await API.getHistory(state.profile.userId);
-      renderHistory();
-    } catch (_) {
-      document.getElementById('history-list').innerHTML =
-        '<div class="history-empty">ไม่สามารถโหลดข้อมูลได้</div>';
+    // ── Friendly errors ─────────────────────────────────────────
+    function friendlyError(err) {
+      console.error('[AAPC]', err);
+      if (err && err.name === 'TypeError') return 'เชื่อมต่อไม่ได้ — กรุณาลองอีกครั้ง';
+      return 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
     }
-  }
 
-  function renderHistory() {
-    const list = document.getElementById('history-list');
-    if (!state.history || state.history.length === 0) {
-      list.innerHTML = '<div class="history-empty">ยังไม่มีประวัติการสะสมคะแนน</div>';
-      return;
+    function escHtml(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
-    list.innerHTML = state.history.map(item => {
-      const ref = item.orderId || item.trackingNo || '—';
-      return `
-        <div class="history-item">
-          <div style="flex:1;min-width:0">
-            <div class="history-ref">${escHtml(ref)}</div>
-            <div class="history-date">${escHtml(item.date)}</div>
-            ${item.reason ? `<div class="history-reason">${escHtml(item.reason)}</div>` : ''}
-          </div>
-          <span class="status-pill status-${escHtml(item.status)}">${escHtml(item.status)}</span>
-        </div>`;
-    }).join('');
-  }
 
-  function escHtml(str) {
-    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
+    // ── Theme Toggle ────────────────────────────────────────────
+    function toggleTheme() {
+      document.body.classList.toggle('dark-theme');
+      try {
+        localStorage.setItem(
+          'atipa-theme',
+          document.body.classList.contains('dark-theme') ? 'dark' : 'light'
+        );
+      } catch (_) {}
+    }
 
-  // ── Init ───────────────────────────────────────────────────────────────────
-  async function init() {
-    try {
-      await liff.init({ liffId: LIFF_ID });
+    function loadSavedTheme() {
+      try {
+        if (localStorage.getItem('atipa-theme') === 'dark') {
+          document.body.classList.add('dark-theme');
+        }
+      } catch (_) {}
+    }
 
-      if (!liff.isLoggedIn()) {
-        liff.login();
+    // ── Tab Navigation ──────────────────────────────────────────
+    function switchTab(tabName) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tabName);
+      });
+      document.getElementById('page-' + tabName).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      if (tabName === 'history' && state.history === null) loadHistory();
+    }
+
+    // ── Dashboard ───────────────────────────────────────────────
+    async function loadDashboard() {
+      if (!state.profile) return;
+      try {
+        state.gasProfile = await API.getProfile(state.profile.userId);
+        renderDashboard(state.gasProfile);
+      } catch (err) {
+        renderDashboardError(err);
+      }
+    }
+
+    function renderDashboard(p) {
+      const points = Number(p.points) || 0;
+
+      document.getElementById('points-display').innerHTML =
+        `<span class="points-value">${points.toLocaleString()}</span>` +
+        `<span class="points-unit">คะแนน</span>`;
+
+      document.getElementById('tier-pill').textContent = p.tier || 'เงิน';
+
+      const progressSection = document.getElementById('progress-section');
+      progressSection.style.display = 'block';
+
+      let pct;
+      if (p.tier === 'เพชร') {
+        pct = 100;
+      } else if (p.tier === 'ทอง') {
+        pct = Math.min(100, Math.round(((points - 500) / 500) * 100));
+      } else {
+        pct = Math.min(100, Math.round((points / 500) * 100));
+      }
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-current-tier').textContent = p.tier || '—';
+
+      if (p.nextTierName) {
+        document.getElementById('progress-next-tier').textContent = p.nextTierName;
+        document.getElementById('progress-label').textContent =
+          `อีก ${Number(p.pointsToNext).toLocaleString()} คะแนน ถึงระดับ${p.nextTierName}`;
+      } else {
+        document.getElementById('progress-next-tier').textContent = '';
+        document.getElementById('progress-label').textContent = 'ระดับสูงสุด';
+      }
+
+      const tierMap = { 'เงิน': 'silver', 'ทอง': 'gold', 'เพชร': 'diamond' };
+      ['silver', 'gold', 'diamond'].forEach(t => {
+        document.getElementById('guide-' + t).classList.remove('tier-active');
+      });
+      const activeKey = tierMap[p.tier];
+      if (activeKey) document.getElementById('guide-' + activeKey).classList.add('tier-active');
+    }
+
+    function renderDashboardError(err) {
+      console.error('[AAPC] dashboard error:', err);
+      document.getElementById('points-display').innerHTML =
+        `<span style="font-size:13px;color:var(--grey-400);font-weight:300">ไม่สามารถโหลดข้อมูลได้</span>`;
+    }
+
+    // ── History ─────────────────────────────────────────────────
+    async function loadHistory() {
+      if (!state.profile) return;
+      const list = document.getElementById('history-list');
+      list.innerHTML = '<div class="history-empty">กำลังโหลด...</div>';
+
+      try {
+        state.history = await API.getHistory(state.profile.userId);
+        renderHistory();
+      } catch (err) {
+        console.error('[AAPC] history error:', err);
+        list.innerHTML = '<div class="history-empty">ไม่สามารถโหลดข้อมูลได้</div>';
+      }
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('history-list');
+      if (!state.history || state.history.length === 0) {
+        list.innerHTML = '<div class="history-empty">ยังไม่มีประวัติการสะสมคะแนน</div>';
+        return;
+      }
+      list.innerHTML = state.history.map(item => {
+        const ref = item.orderId || item.trackingNo || '—';
+        return `
+          <div class="history-item">
+            <div class="history-main">
+              <div class="history-ref">${escHtml(ref)}</div>
+              <div class="history-date">${escHtml(item.date)}</div>
+              ${item.reason ? `<div class="history-reason">${escHtml(item.reason)}</div>` : ''}
+            </div>
+            <span class="status-pill status-pill-${escHtml(item.status)}">${escHtml(item.status)}</span>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Collect — Submit ────────────────────────────────────────
+    async function submitForm() {
+      if (state.submitting) return;
+
+      const orderEl = document.getElementById('collect-order');
+      const trackEl = document.getElementById('collect-track');
+      const order   = orderEl.value.trim();
+      const track   = trackEl.value.trim();
+
+      console.log('[AAPC] submit — order:', order, '| track:', track);
+      const v = validateInputs(order, track);
+      if (!v.ok) {
+        console.warn('[AAPC] validation failed:', v.msg);
+        showCollectStatus(v.msg, 'error');
         return;
       }
 
-      const profile = await liff.getProfile();
-      state.profile = profile;
+      state.submitting = true;
+      const btn = document.getElementById('submit-btn');
+      btn.disabled    = true;
+      btn.textContent = 'กำลังตรวจสอบ...';
+      clearCollectStatus();
 
-      document.getElementById('user-name').textContent = profile.displayName;
-      document.getElementById('user-sub').textContent  = 'LINE Member';
-      if (profile.pictureUrl) {
-        document.getElementById('user-pic').src = profile.pictureUrl;
+      try {
+        const dup = await API.checkDuplicate(order, track);
+        if (dup && dup.isDuplicate) {
+          showCollectStatus('เลขนี้บันทึกแล้ว — ตรวจสอบประวัติการสะสมได้ในแท็บ History', 'error');
+          resetSubmitBtn();
+          return;
+        }
+      } catch (_) {
+        // Fail open — continue to submit
       }
 
-      // Hide scan-order btn on desktop (only tracking scan is useful)
-      if (!liff.isInClient()) {
+      btn.textContent = 'กำลังบันทึก...';
+
+      const payload = {
+        userId:         state.profile?.userId       || 'GUEST',
+        displayName:    state.profile?.displayName  || 'Guest',
+        pictureUrl:     state.profile?.pictureUrl   || '',
+        orderId:        order,
+        trackingNumber: track,
+      };
+
+      try {
+        const result = await API.submitOrder(payload);
+        console.log('[AAPC] submitOrder result:', result);
+        if (!result || result.status !== 'success') {
+          throw new Error(result && result.message || 'submit failed');
+        }
+        showCollectStatus(
+          'บันทึกเรียบร้อย — ระบบจะตรวจสอบและแจ้งผลทาง LINE ภายใน 1–2 วันทำการ',
+          'success'
+        );
+        orderEl.value = '';
+        trackEl.value = '';
+        state.history = null; // invalidate cache
+      } catch (err) {
+        showCollectStatus(friendlyError(err), 'error');
+      }
+
+      resetSubmitBtn();
+    }
+
+    function resetSubmitBtn() {
+      const btn = document.getElementById('submit-btn');
+      btn.disabled    = false;
+      btn.textContent = 'บันทึกข้อมูล';
+      state.submitting = false;
+    }
+
+    function showCollectStatus(msg, type) {
+      const el = document.getElementById('collect-status');
+      el.textContent = msg;
+      el.className   = 'status-msg ' + type;
+      el.style.display = 'block';
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function clearCollectStatus() {
+      const el = document.getElementById('collect-status');
+      el.style.display = 'none';
+    }
+
+    // ── Barcode Scan (LIFF only) ────────────────────────────────
+    async function scanBarcode(target) {
+      if (typeof liff === 'undefined' || !liff.isInClient || !liff.isInClient()) {
+        showCollectStatus('การสแกนใช้ได้เฉพาะใน LINE app เท่านั้น', 'error');
+        return;
+      }
+      try {
+        const result = await liff.scanCodeV2();
+        if (result && result.value) {
+          const field = target === 'order'
+            ? document.getElementById('collect-order')
+            : document.getElementById('collect-track');
+          field.value = result.value;
+          field.focus();
+          clearCollectStatus();
+        }
+      } catch (err) {
+        showCollectStatus('สแกนไม่สำเร็จ — กรุณากรอกด้วยตนเอง', 'error');
+      }
+    }
+
+    // ── Init ────────────────────────────────────────────────────
+    async function init() {
+      loadSavedTheme();
+
+      if (DEV_MODE) {
+        document.getElementById('dev-banner').style.display = 'block';
+      }
+
+      try {
+        if (DEV_MODE) {
+          state.profile = DEV_PROFILE;
+          // hide scan buttons in DEV (LIFF SDK not active in browser)
+          document.getElementById('scan-order-btn').classList.add('hidden');
+          document.getElementById('scan-track-btn').classList.add('hidden');
+        } else {
+          await liff.init({ liffId: LIFF_ID });
+
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+
+          state.profile = await liff.getProfile();
+
+          // Hide scan buttons when not running inside LINE client (e.g. desktop browser preview of LIFF URL)
+          if (!liff.isInClient()) {
+            document.getElementById('scan-order-btn').classList.add('hidden');
+            document.getElementById('scan-track-btn').classList.add('hidden');
+          }
+        }
+
+        // Bind profile to UI
+        const p = state.profile;
+        document.getElementById('user-name').textContent = p.displayName || 'Member';
+        document.getElementById('user-sub').textContent  = DEV_MODE ? 'DEV MODE' : 'LINE Member';
+        if (p.pictureUrl) {
+          document.getElementById('user-pic').src = p.pictureUrl;
+        }
+
+      } catch (err) {
+        console.error('[AAPC] init error:', err);
+        // Guest fallback
+        state.profile = { userId: 'GUEST', displayName: 'Guest', pictureUrl: '' };
+        document.getElementById('user-name').textContent = 'Guest';
+        document.getElementById('user-sub').textContent  = 'ไม่ได้เชื่อมต่อ LINE';
         document.getElementById('scan-order-btn').classList.add('hidden');
         document.getElementById('scan-track-btn').classList.add('hidden');
       }
 
-    } catch (err) {
-      // Guest fallback
-      state.profile = { userId: 'GUEST', displayName: 'Guest', pictureUrl: '' };
-      document.getElementById('user-name').textContent = 'Guest';
-      document.getElementById('user-sub').textContent  = '';
+      // Reveal app
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('app-container').style.display  = 'block';
+
+      // Fetch dashboard
+      loadDashboard();
     }
 
-    // Show app
-    document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-
-    // Load dashboard data
-    loadDashboard();
-  }
-
-  window.onload = init;
-</script>
+    window.onload = init;
+  </script>
 </body>
+
 </html>
