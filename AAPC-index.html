@@ -1257,10 +1257,14 @@
           let step = 'before-init';
           let lastFetchUrl = '';
           let lastFetchErr = '';
-          // Wrap window.fetch BEFORE any LIFF SDK call to capture failing URL
+          // Workaround: liffsdk.line-scdn.net (i18n messages) is unreachable on some networks (e.g. mobile carriers blocking this subdomain).
+          // The i18n file is non-critical (only used for SDK's own error UI strings) — mock it so liff.init() doesn't fail.
           const origFetch = window.fetch;
           window.fetch = async function(...args) {
             const u = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+            if (u && u.includes('liffsdk.line-scdn.net') && u.includes('messages_')) {
+              return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
             try {
               return await origFetch.apply(this, args);
             } catch (e) {
