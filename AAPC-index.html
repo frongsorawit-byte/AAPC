@@ -1253,10 +1253,21 @@
           document.getElementById('scan-order-btn').classList.add('hidden');
           document.getElementById('scan-track-btn').classList.add('hidden');
         } else {
-          // DEBUG: step tracking
+          // DEBUG: step tracking + network connectivity test
           let step = 'before-init';
           try {
-            step = 'init';
+            // Pre-flight: can we even reach api.line.me from this webview?
+            step = 'pre-net-test';
+            let netStatus = '?';
+            try {
+              const ctrl = new AbortController();
+              setTimeout(() => ctrl.abort(), 5000);
+              const r = await fetch('https://api.line.me/oauth2/v2.1/verify?access_token=ping', { signal: ctrl.signal });
+              netStatus = 'ok:' + r.status;
+            } catch (ne) {
+              netStatus = 'FAIL:' + (ne?.name || '') + ':' + (ne?.message || '');
+            }
+            step = 'init (net=' + netStatus + ')';
             await liff.init({ liffId: LIFF_ID });
             step = 'check-login';
             if (!liff.isLoggedIn()) {
