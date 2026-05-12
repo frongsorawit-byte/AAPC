@@ -1258,13 +1258,19 @@
           let lastFetchUrl = '';
           let lastFetchErr = '';
           // Workaround: liffsdk.line-scdn.net is unreachable on some mobile carrier networks.
-          // SDK fetches both messages_*.json (i18n strings) and manifest.json from this domain.
-          // Both are non-critical for app function — mock the entire subdomain so liff.init() doesn't fail.
+          // SDK fetches manifest.json (locale→filename map) then messages_*.json (i18n strings).
+          // manifest.json must return { createAt, languages: {...} } or SDK crashes on .languages['en-GB'].
+          // messages files can be {} — SDK uses built-in defaults when strings are missing.
+          const _MOCK_LANGS = {};
+          ['de','en','es','fr','id','it','ja','ko','pt-BR','ru','th','tr','vi','zh-CN','zh-TW'].forEach(l => _MOCK_LANGS[l] = 'messages_mock.json');
           const origFetch = window.fetch;
           window.fetch = async function(...args) {
             const u = typeof args[0] === 'string' ? args[0] : args[0]?.url;
             if (u && u.includes('liffsdk.line-scdn.net')) {
-              return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+              const body = u.includes('manifest.json')
+                ? JSON.stringify({ createAt: 0, languages: _MOCK_LANGS })
+                : '{}';
+              return new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } });
             }
             try {
               return await origFetch.apply(this, args);
