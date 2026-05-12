@@ -1255,22 +1255,22 @@
         } else {
           // DEBUG: step tracking + network connectivity test
           let step = 'before-init';
+          let lastFetchUrl = '';
+          let lastFetchErr = '';
+          // Wrap window.fetch BEFORE any LIFF SDK call to capture failing URL
+          const origFetch = window.fetch;
+          window.fetch = async function(...args) {
+            const u = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+            try {
+              return await origFetch.apply(this, args);
+            } catch (e) {
+              lastFetchUrl = u;
+              lastFetchErr = e?.message || '';
+              throw e;
+            }
+          };
           try {
-            // Pre-flight: multiple network tests
-            step = 'pre-net-test';
-            const testFetch = async (url, opts) => {
-              try {
-                const ctrl = new AbortController();
-                setTimeout(() => ctrl.abort(), 5000);
-                const r = await fetch(url, { ...opts, signal: ctrl.signal });
-                return 'ok:' + r.status;
-              } catch (e) { return 'FAIL:' + (e?.name||'') + ':' + (e?.message||''); }
-            };
-            const n1 = await testFetch('https://api.line.me/oauth2/v2.1/verify?access_token=ping');
-            const n2 = await testFetch('https://liff.line.me/', { method: 'HEAD', mode: 'no-cors' });
-            const n3 = await testFetch('https://api.line.me/liff/v1/apps/' + LIFF_ID);
-            const netStatus = 'api=' + n1 + ' / liff.line.me=' + n2 + ' / app=' + n3;
-            step = 'init (' + netStatus + ')';
+            step = 'init';
             await liff.init({ liffId: LIFF_ID });
             step = 'check-login';
             if (!liff.isLoggedIn()) {
@@ -1281,12 +1281,13 @@
             state.profile = await liff.getProfile();
             step = 'done';
           } catch (innerErr) {
-            const ua = navigator.userAgent.slice(-60);
+            const ua = navigator.userAgent.slice(-50);
             const details = [
               'step=' + step,
-              'code=' + (innerErr?.code || '-'),
-              'msg=' + (innerErr?.message || '-'),
-              'name=' + (innerErr?.name || '-'),
+              'failedURL=' + (lastFetchUrl || '(none)'),
+              'fetchErr=' + (lastFetchErr || '-'),
+              'errCode=' + (innerErr?.code || '-'),
+              'errMsg=' + (innerErr?.message || '-'),
               'ua=...' + ua,
             ].join(' | ');
             throw Object.assign(innerErr, { _debugDetails: details });
