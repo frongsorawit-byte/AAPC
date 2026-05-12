@@ -1279,6 +1279,11 @@
 
       } catch (err) {
         console.error('[AAPC] init error:', err);
+        // DEBUG banner — remove before final deploy
+        const dbg = document.createElement('div');
+        dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#c00;color:#fff;font-size:11px;padding:8px;z-index:9999;word-break:break-all';
+        dbg.textContent = 'LIFF ERR: ' + (err && (err.code || err.message || JSON.stringify(err)));
+        document.body.appendChild(dbg);
         // Guest fallback
         state.profile = { userId: 'GUEST', displayName: 'Guest', pictureUrl: '' };
         document.getElementById('user-name').textContent = 'Guest';
