@@ -10,7 +10,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Montserrat:wght@300;400;500;600&display=swap"
     rel="stylesheet">
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://static.line-scdn.net/liff/edge/versions/2.22.3/sdk.js"></script>
   <style>
     *,
     *::before,
@@ -1253,14 +1253,30 @@
           document.getElementById('scan-order-btn').classList.add('hidden');
           document.getElementById('scan-track-btn').classList.add('hidden');
         } else {
-          await liff.init({ liffId: LIFF_ID });
-
-          if (!liff.isLoggedIn()) {
-            liff.login();
-            return;
+          // DEBUG: step tracking
+          let step = 'before-init';
+          try {
+            step = 'init';
+            await liff.init({ liffId: LIFF_ID });
+            step = 'check-login';
+            if (!liff.isLoggedIn()) {
+              liff.login();
+              return;
+            }
+            step = 'get-profile';
+            state.profile = await liff.getProfile();
+            step = 'done';
+          } catch (innerErr) {
+            const ua = navigator.userAgent.slice(-60);
+            const details = [
+              'step=' + step,
+              'code=' + (innerErr?.code || '-'),
+              'msg=' + (innerErr?.message || '-'),
+              'name=' + (innerErr?.name || '-'),
+              'ua=...' + ua,
+            ].join(' | ');
+            throw Object.assign(innerErr, { _debugDetails: details });
           }
-
-          state.profile = await liff.getProfile();
 
           // Hide scan buttons when not running inside LINE client (e.g. desktop browser preview of LIFF URL)
           if (!liff.isInClient()) {
@@ -1281,8 +1297,8 @@
         console.error('[AAPC] init error:', err);
         // DEBUG banner — remove before final deploy
         const dbg = document.createElement('div');
-        dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#c00;color:#fff;font-size:11px;padding:8px;z-index:9999;word-break:break-all';
-        dbg.textContent = 'LIFF ERR: ' + (err && (err.code || err.message || JSON.stringify(err)));
+        dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#c00;color:#fff;font-size:10px;padding:8px;z-index:9999;word-break:break-all;line-height:1.4';
+        dbg.textContent = err?._debugDetails || ('ERR: ' + (err?.code || err?.message || String(err)));
         document.body.appendChild(dbg);
         // Guest fallback
         state.profile = { userId: 'GUEST', displayName: 'Guest', pictureUrl: '' };
