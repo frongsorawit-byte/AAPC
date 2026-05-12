@@ -1256,18 +1256,21 @@
           // DEBUG: step tracking + network connectivity test
           let step = 'before-init';
           try {
-            // Pre-flight: can we even reach api.line.me from this webview?
+            // Pre-flight: multiple network tests
             step = 'pre-net-test';
-            let netStatus = '?';
-            try {
-              const ctrl = new AbortController();
-              setTimeout(() => ctrl.abort(), 5000);
-              const r = await fetch('https://api.line.me/oauth2/v2.1/verify?access_token=ping', { signal: ctrl.signal });
-              netStatus = 'ok:' + r.status;
-            } catch (ne) {
-              netStatus = 'FAIL:' + (ne?.name || '') + ':' + (ne?.message || '');
-            }
-            step = 'init (net=' + netStatus + ')';
+            const testFetch = async (url, opts) => {
+              try {
+                const ctrl = new AbortController();
+                setTimeout(() => ctrl.abort(), 5000);
+                const r = await fetch(url, { ...opts, signal: ctrl.signal });
+                return 'ok:' + r.status;
+              } catch (e) { return 'FAIL:' + (e?.name||'') + ':' + (e?.message||''); }
+            };
+            const n1 = await testFetch('https://api.line.me/oauth2/v2.1/verify?access_token=ping');
+            const n2 = await testFetch('https://liff.line.me/', { method: 'HEAD', mode: 'no-cors' });
+            const n3 = await testFetch('https://api.line.me/liff/v1/apps/' + LIFF_ID);
+            const netStatus = 'api=' + n1 + ' / liff.line.me=' + n2 + ' / app=' + n3;
+            step = 'init (' + netStatus + ')';
             await liff.init({ liffId: LIFF_ID });
             step = 'check-login';
             if (!liff.isLoggedIn()) {
