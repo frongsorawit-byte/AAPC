@@ -650,10 +650,26 @@
       border-radius: 2px;
     }
 
-    .status-pill-รอตรวจ  { background: var(--pending-bg); color: var(--pending-text); }
-    .status-pill-ได้แต้ม { background: var(--success-bg); color: var(--success-text); }
-    .status-pill-ไม่ผ่าน { background: var(--error-bg);   color: var(--error-text);   }
-    .status-pill-ซ้ำ    { background: var(--grey-100);    color: var(--grey-600);     }
+    .status-pill-รอตรวจ     { background: var(--pending-bg); color: var(--pending-text); }
+    .status-pill-Verifying  { background: var(--caramel-lt);  color: var(--caramel);      }
+    .status-pill-ได้แต้ม    { background: var(--success-bg);  color: var(--success-text); }
+    .status-pill-ไม่ผ่าน    { background: var(--error-bg);    color: var(--error-text);   }
+    .status-pill-ซ้ำ       { background: var(--grey-100);    color: var(--grey-600);     }
+    .status-pill-ดูดแต้มคืน { background: var(--error-bg);    color: var(--error-text);   }
+
+    .history-bonus {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      color: var(--caramel);
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+    }
+    .history-points-clawback {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      color: var(--error-text);
+      font-weight: 500;
+    }
 
     /* ── Info Tab ── */
     .info-section {
@@ -1121,14 +1137,28 @@
       }
       list.innerHTML = state.history.map(item => {
         const ref = item.orderId || item.trackingNo || '—';
+        // Display-friendly status text + reason
+        let displayStatus = item.status;
+        let displayReason = item.reason || '';
+        if (item.status === 'Verifying') {
+          displayReason = displayReason || 'อยู่ระหว่างรอระบบอัปเดต (24-48 ชม.)';
+        }
+        // Bonus reason for awarded points
+        const bonusLine = (item.status === 'ได้แต้ม' && item.bonusReason)
+          ? `<div class="history-bonus">+${item.pointsAwarded} • ${escHtml(item.bonusReason)}</div>` : '';
+        // Clawback show negative
+        const clawbackLine = (item.status === 'ดูดแต้มคืน')
+          ? `<div class="history-points-clawback">${item.pointsAwarded} คะแนน</div>` : '';
         return `
           <div class="history-item">
             <div class="history-main">
               <div class="history-ref">${escHtml(ref)}</div>
               <div class="history-date">${escHtml(item.date)}</div>
-              ${item.reason ? `<div class="history-reason">${escHtml(item.reason)}</div>` : ''}
+              ${displayReason ? `<div class="history-reason">${escHtml(displayReason)}</div>` : ''}
+              ${bonusLine}
+              ${clawbackLine}
             </div>
-            <span class="status-pill status-pill-${escHtml(item.status)}">${escHtml(item.status)}</span>
+            <span class="status-pill status-pill-${escHtml(displayStatus)}">${escHtml(displayStatus)}</span>
           </div>`;
       }).join('');
     }
@@ -1253,56 +1283,14 @@
           document.getElementById('scan-order-btn').classList.add('hidden');
           document.getElementById('scan-track-btn').classList.add('hidden');
         } else {
-          // DEBUG: step tracking + network connectivity test
-          let step = 'before-init';
-          let lastFetchUrl = '';
-          let lastFetchErr = '';
-          // Workaround: liffsdk.line-scdn.net is unreachable on some mobile carrier networks.
-          // SDK fetches manifest.json (locale→filename map) then messages_*.json (i18n strings).
-          // manifest.json must return { createAt, languages: {...} } or SDK crashes on .languages['en-GB'].
-          // messages files can be {} — SDK uses built-in defaults when strings are missing.
-          const _MOCK_LANGS = {};
-          ['de','en','es','fr','id','it','ja','ko','pt-BR','ru','th','tr','vi','zh-CN','zh-TW'].forEach(l => _MOCK_LANGS[l] = 'messages_mock.json');
-          const origFetch = window.fetch;
-          window.fetch = async function(...args) {
-            const u = typeof args[0] === 'string' ? args[0] : args[0]?.url;
-            if (u && u.includes('liffsdk.line-scdn.net')) {
-              const body = u.includes('manifest.json')
-                ? JSON.stringify({ createAt: 0, languages: _MOCK_LANGS })
-                : '{}';
-              return new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } });
-            }
-            try {
-              return await origFetch.apply(this, args);
-            } catch (e) {
-              lastFetchUrl = u;
-              lastFetchErr = e?.message || '';
-              throw e;
-            }
-          };
-          try {
-            step = 'init';
-            await liff.init({ liffId: LIFF_ID });
-            step = 'check-login';
-            if (!liff.isLoggedIn()) {
-              liff.login();
-              return;
-            }
-            step = 'get-profile';
-            state.profile = await liff.getProfile();
-            step = 'done';
-          } catch (innerErr) {
-            const ua = navigator.userAgent.slice(-50);
-            const details = [
-              'step=' + step,
-              'failedURL=' + (lastFetchUrl || '(none)'),
-              'fetchErr=' + (lastFetchErr || '-'),
-              'errCode=' + (innerErr?.code || '-'),
-              'errMsg=' + (innerErr?.message || '-'),
-              'ua=...' + ua,
-            ].join(' | ');
-            throw Object.assign(innerErr, { _debugDetails: details });
+          await liff.init({ liffId: LIFF_ID });
+
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
           }
+
+          state.profile = await liff.getProfile();
 
           // Hide scan buttons when not running inside LINE client (e.g. desktop browser preview of LIFF URL)
           if (!liff.isInClient()) {
@@ -1321,11 +1309,6 @@
 
       } catch (err) {
         console.error('[AAPC] init error:', err);
-        // DEBUG banner — remove before final deploy
-        const dbg = document.createElement('div');
-        dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#c00;color:#fff;font-size:10px;padding:8px;z-index:9999;word-break:break-all;line-height:1.4';
-        dbg.textContent = err?._debugDetails || ('ERR: ' + (err?.code || err?.message || String(err)));
-        document.body.appendChild(dbg);
         // Guest fallback
         state.profile = { userId: 'GUEST', displayName: 'Guest', pictureUrl: '' };
         document.getElementById('user-name').textContent = 'Guest';
