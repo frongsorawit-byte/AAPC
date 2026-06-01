@@ -1317,22 +1317,6 @@
       document.getElementById('scan-track-btn').classList.add('hidden');
     }
 
-    // ── Debug overlay (temporary) ────────────────────────────────
-    const _dbg = [];
-    function dbg(msg) {
-      _dbg.push(msg);
-      console.log('[AAPC]', msg);
-      let el = document.getElementById('debug-overlay');
-      if (!el) {
-        el = document.createElement('div');
-        el.id = 'debug-overlay';
-        el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font:11px monospace;padding:8px;z-index:9999;max-height:40vh;overflow-y:auto;';
-        document.body.appendChild(el);
-      }
-      el.textContent = _dbg.join('\n');
-      el.scrollTop = el.scrollHeight;
-    }
-
     // ── Reconnect banner helpers ────────────────────────────────
     function showReconnect(allowManual) {
       const b = document.getElementById('reconnect-banner');
@@ -1365,14 +1349,13 @@
       showReconnect(false);
 
       let lastErr;
-      for (let i = 0; i < 2 && !_liffConnected; i++) {
+      for (let i = 0; i < 3 && !_liffConnected; i++) {
         try {
-          dbg('connect ' + (i + 1) + ' online=' + navigator.onLine + ' vis=' + document.visibilityState);
           await liff.init({ liffId: LIFF_ID });
           await liff.ready;
-          if (!liff.isLoggedIn()) { dbg('not logged in -> login()'); liff.login(); return; }
+          if (!liff.isLoggedIn()) { liff.login(); return; }
           const p = await getProfileWithRetry();
-          state.profile = p;            // cached inside getProfileWithRetry
+          state.profile = p;
           _liffConnected = true;
           bindProfileToUI(p);
           hideReconnect();
@@ -1380,31 +1363,16 @@
             document.getElementById('scan-order-btn').classList.add('hidden');
             document.getElementById('scan-track-btn').classList.add('hidden');
           }
-          dbg('connected: ' + p.displayName);
         } catch (e) {
           lastErr = e;
-          dbg('fail: ' + e.name + ' / ' + e.message);
-          if (document.visibilityState === 'hidden') break;   // wait for visible
+          if (document.visibilityState === 'hidden') break;
           await new Promise(r => setTimeout(r, 1500 * (i + 1)));
         }
       }
       _connecting = false;
 
       if (!_liffConnected) {
-        dbg('connect exhausted: ' + (lastErr && lastErr.message));
-        // Keep showing cached identity; offer a manual retry. Auto-retry will
-        // also fire on the next visibility/online event.
         showReconnect(true);
-      }
-    }
-
-    // ── Connectivity probe (temporary diagnostic) ──────────────
-    async function probe(label, url) {
-      try {
-        await fetch(url, { mode: 'no-cors', cache: 'no-store' });
-        dbg('probe ' + label + ': OK');
-      } catch (e) {
-        dbg('probe ' + label + ': ' + e.name + ' / ' + e.message);
       }
     }
 
@@ -1422,38 +1390,6 @@
         loadDashboard();
         return;
       }
-
-      // --- diagnostics: intercept every fetch to see which URL liff.init hits ---
-      const _origFetch = window.fetch.bind(window);
-      window.fetch = function (input, opts) {
-        let url = (input && input.url) ? input.url : input;
-        url = String(url);
-        const short = url.replace(/^https?:\/\//, '').slice(0, 48);
-        return _origFetch(input, opts).then(r => {
-          dbg('→ ' + short + '  [' + r.status + ']');
-          return r;
-        }).catch(e => {
-          dbg('✗ ' + short + '  ' + e.message);
-          throw e;
-        });
-      };
-
-      // --- diagnostics: where does the network actually reach? ---
-      dbg('href=' + location.href.slice(0, 70));
-      dbg('liff getVer=' + (typeof liff !== 'undefined' && liff.getVersion ? liff.getVersion() : '?'));
-
-      // Test the EXACT failing URL in both modes to tell CORS vs network block.
-      const _liffsdkUrl = 'https://liffsdk.line-scdn.net/xlt/manifest.json';
-      try { await _origFetch(_liffsdkUrl, { mode: 'no-cors', cache: 'no-store' }); dbg('liffsdk no-cors: OK (host reachable)'); }
-      catch (e) { dbg('liffsdk no-cors: ' + e.message + ' (host BLOCKED)'); }
-      try { const r = await _origFetch(_liffsdkUrl, { mode: 'cors', cache: 'no-store' }); dbg('liffsdk cors: ' + r.status); }
-      catch (e) { dbg('liffsdk cors: ' + e.message + ' (CORS rejected)'); }
-      // (1) credentialed CORS — liff may send cookies; wildcard ACAO would reject
-      try { const r = await _origFetch(_liffsdkUrl, { mode: 'cors', credentials: 'include', cache: 'no-store' }); dbg('liffsdk creds: ' + r.status); }
-      catch (e) { dbg('liffsdk creds: ' + e.message + ' ← creds CORS FAIL'); }
-      // (2) default cache — liff may hit a poisoned cache entry
-      try { const r = await _origFetch(_liffsdkUrl); dbg('liffsdk default-cache: ' + r.status); }
-      catch (e) { dbg('liffsdk default-cache: ' + e.message + ' ← cache FAIL'); }
 
       // Show whatever identity we already know, instantly — never blank/Guest
       // while we still have a cached LINE profile from a previous session.
