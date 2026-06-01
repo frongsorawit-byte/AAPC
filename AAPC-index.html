@@ -952,6 +952,7 @@
     // ── Config ──────────────────────────────────────────────────
     const LIFF_ID = '2009964236-KUoNM2sL';
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbyhuDE9-KVaxOKnneQXFVv0m9qFYoBQyJj1wGvIQzCgg1u3tI0kZq2BnB24-Y9-pvhyhg/exec';
+    const PROFILE_CACHE_KEY = 'aapc-profile-v1';
 
     // ── Dev Mode (localhost หรือ ?dev=1) ────────────────────────
     const DEV_MODE = location.hostname === 'localhost' ||
@@ -1269,17 +1270,26 @@
     }
 
     // ── Profile helpers ─────────────────────────────────────────
+    function cacheProfile(p) {
+      try { localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(p)); } catch (_) {}
+    }
+    function getCachedProfile() {
+      try { return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY)); } catch (_) { return null; }
+    }
+
     // getProfile() can throw transiently right after the LIFF view reloads
     // (e.g. returning from the camera/scanCodeV2) while the access token is
-    // being refreshed. Retry a few times before giving up.
-    async function getProfileWithRetry(attempts = 3) {
+    // still refreshing. Retry up to 5 times before giving up.
+    async function getProfileWithRetry(attempts = 5) {
       let lastErr;
       for (let i = 0; i < attempts; i++) {
         try {
-          return await liff.getProfile();
+          const p = await liff.getProfile();
+          cacheProfile(p);
+          return p;
         } catch (err) {
           lastErr = err;
-          await new Promise(r => setTimeout(r, 300 * (i + 1)));
+          await new Promise(r => setTimeout(r, Math.min(500 * (i + 1), 2000)));
         }
       }
       throw lastErr;
@@ -1329,8 +1339,6 @@
           }
 
           state.profile = await getProfileWithRetry();
-          // Got a valid profile — clear any re-login loop guard from a prior failure.
-          try { sessionStorage.removeItem('aapc-relogin'); } catch (_) {}
 
           // Hide scan buttons when not running inside LINE client (e.g. desktop browser preview of LIFF URL)
           if (!liff.isInClient()) {
@@ -1343,22 +1351,26 @@
 
       } catch (err) {
         console.error('[AAPC] init error:', err);
-        // Inside the LINE client the user is ALWAYS a real member. A failure
-        // here is almost always a transient token issue (e.g. after returning
-        // from scanCodeV2) — re-login to refresh the session instead of
-        // demoting them to Guest, which would lose their points/identity.
-        // Guard against an infinite redirect loop: only auto re-login once.
-        if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-          let triedRelogin = false;
-          try { triedRelogin = sessionStorage.getItem('aapc-relogin') === '1'; } catch (_) {}
-          if (!triedRelogin) {
-            try { sessionStorage.setItem('aapc-relogin', '1'); } catch (_) {}
-            liff.login();
-            return;
-          }
+        // getProfile() can fail transiently after scanCodeV2 reloads the webview
+        // while the access token is refreshing. Use the locally-cached profile
+        // (written on last successful login) so the user never sees "Guest".
+        // Once visible, silently retry in the background to get a fresh profile.
+        const cached = getCachedProfile();
+        if (cached && typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+          state.profile = cached;
+          bindProfileToUI(state.profile);
+          setTimeout(async () => {
+            try {
+              const fresh = await liff.getProfile();
+              cacheProfile(fresh);
+              state.profile = fresh;
+              bindProfileToUI(fresh);
+            } catch (_) {}
+          }, 3000);
+        } else {
+          // No cache or outside LINE — genuine guest
+          applyGuestFallback();
         }
-        // Genuinely outside LINE (desktop browser, SDK failed to load) → Guest
-        applyGuestFallback();
       }
 
       // Reveal app
