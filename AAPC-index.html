@@ -1341,22 +1341,36 @@
           document.getElementById('scan-order-btn').classList.add('hidden');
           document.getElementById('scan-track-btn').classList.add('hidden');
         } else {
-          dbg('1. liff.init...');
-          await liff.init({ liffId: LIFF_ID });
-          dbg('2. liff.ready...');
+          // liff.init() can fail with "Failed to fetch" right after the webview
+          // reloads from scanCodeV2 — network is briefly unavailable. Retry.
+          let initErr;
+          for (let i = 0; i < 4; i++) {
+            try {
+              dbg('liff.init attempt ' + (i+1));
+              await liff.init({ liffId: LIFF_ID });
+              initErr = null;
+              break;
+            } catch (e) {
+              initErr = e;
+              dbg('init fail: ' + e.message + ' — wait ' + (1000*(i+1)) + 'ms');
+              await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+            }
+          }
+          if (initErr) throw initErr;
+
           await liff.ready;
-          dbg('3. isLoggedIn=' + liff.isLoggedIn() + ' isInClient=' + liff.isInClient());
-          dbg('4. cache=' + (getCachedProfile() ? getCachedProfile().displayName : 'none'));
+          dbg('ready | loggedIn=' + liff.isLoggedIn() + ' inClient=' + liff.isInClient());
+          dbg('cache=' + (getCachedProfile() ? getCachedProfile().displayName : 'none'));
 
           if (!liff.isLoggedIn()) {
-            dbg('5. NOT logged in -> liff.login()');
+            dbg('NOT logged in -> liff.login()');
             liff.login();
             return;
           }
 
-          dbg('5. getProfile (retry up to 5x)...');
+          dbg('getProfile...');
           state.profile = await getProfileWithRetry();
-          dbg('6. profile ok: ' + state.profile.displayName);
+          dbg('ok: ' + state.profile.displayName);
 
           if (!liff.isInClient()) {
             document.getElementById('scan-order-btn').classList.add('hidden');
@@ -1367,14 +1381,16 @@
         bindProfileToUI(state.profile);
 
       } catch (err) {
-        dbg('ERR: ' + err.message);
+        dbg('FINAL ERR: ' + err.message);
         const cached = getCachedProfile();
-        dbg('cache fallback: ' + (cached ? cached.displayName : 'none'));
-        if (cached && typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+        const isLINE = /Line\//i.test(navigator.userAgent);
+        dbg('cache=' + (cached ? cached.displayName : 'none') + ' isLINE=' + isLINE);
+        if (cached && isLINE) {
           state.profile = cached;
           bindProfileToUI(state.profile);
           setTimeout(async () => {
             try {
+              await liff.init({ liffId: LIFF_ID });
               const fresh = await liff.getProfile();
               cacheProfile(fresh);
               state.profile = fresh;
