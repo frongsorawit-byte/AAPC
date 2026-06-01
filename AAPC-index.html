@@ -1366,6 +1366,9 @@
         } catch (e) {
           lastErr = e;
           if (document.visibilityState === 'hidden') break;
+          if (e?.message?.includes('Failed to fetch')) {
+            try { await fetch('https://liffsdk.line-scdn.net/xlt/manifest.json', { cache: 'reload' }); } catch (_) {}
+          }
           await new Promise(r => setTimeout(r, 1500 * (i + 1)));
         }
       }
