@@ -722,6 +722,12 @@
     <!-- Dev Banner -->
     <div id="dev-banner">DEV MODE — localhost</div>
 
+    <!-- Reconnect banner (shown when LIFF can't reach LINE, e.g. after camera) -->
+    <div id="reconnect-banner" style="display:none;background:var(--pending-bg);color:var(--pending-text);font-size:13px;text-align:center;padding:10px 16px;">
+      <span id="reconnect-text">กำลังเชื่อมต่อ LINE อีกครั้ง…</span>
+      <button id="reconnect-btn" style="display:none;margin-left:8px;border:1px solid currentColor;background:transparent;color:inherit;border-radius:6px;padding:2px 10px;font-size:12px;cursor:pointer;">เชื่อมต่อใหม่</button>
+    </div>
+
     <!-- ── DASHBOARD ── -->
     <div class="page active" id="page-dashboard">
       <div class="page-header">
@@ -1327,88 +1333,124 @@
       el.scrollTop = el.scrollHeight;
     }
 
+    // ── Reconnect banner helpers ────────────────────────────────
+    function showReconnect(allowManual) {
+      const b = document.getElementById('reconnect-banner');
+      const btn = document.getElementById('reconnect-btn');
+      if (b) b.style.display = 'block';
+      if (btn) btn.style.display = allowManual ? 'inline-block' : 'none';
+    }
+    function hideReconnect() {
+      const b = document.getElementById('reconnect-banner');
+      if (b) b.style.display = 'none';
+    }
+
+    // ── LIFF connection (resilient) ─────────────────────────────
+    // After scanCodeV2 the webview is backgrounded for the camera; on return
+    // the network stack can be unavailable for several seconds, making
+    // liff.init() throw "Failed to fetch". So we don't block the UI on it:
+    // we show the cached identity immediately and (re)connect in the
+    // background, retrying when the page becomes visible / comes back online.
+    let _liffConnected = false;
+    let _connecting = false;
+
+    async function connectLiff() {
+      if (_liffConnected || _connecting) return;
+      if (document.visibilityState === 'hidden') {
+        dbg('hidden — defer connect until visible');
+        showReconnect(false);
+        return;            // re-triggered by visibilitychange
+      }
+      _connecting = true;
+      showReconnect(false);
+
+      let lastErr;
+      for (let i = 0; i < 5 && !_liffConnected; i++) {
+        try {
+          dbg('connect ' + (i + 1) + ' online=' + navigator.onLine + ' vis=' + document.visibilityState);
+          await liff.init({ liffId: LIFF_ID });
+          await liff.ready;
+          if (!liff.isLoggedIn()) { dbg('not logged in -> login()'); liff.login(); return; }
+          const p = await getProfileWithRetry();
+          state.profile = p;            // cached inside getProfileWithRetry
+          _liffConnected = true;
+          bindProfileToUI(p);
+          hideReconnect();
+          if (!liff.isInClient()) {
+            document.getElementById('scan-order-btn').classList.add('hidden');
+            document.getElementById('scan-track-btn').classList.add('hidden');
+          }
+          dbg('connected: ' + p.displayName);
+        } catch (e) {
+          lastErr = e;
+          dbg('fail: ' + e.message);
+          if (document.visibilityState === 'hidden') break;   // wait for visible
+          await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+        }
+      }
+      _connecting = false;
+
+      if (!_liffConnected) {
+        dbg('connect exhausted: ' + (lastErr && lastErr.message));
+        // Keep showing cached identity; offer a manual retry. Auto-retry will
+        // also fire on the next visibility/online event.
+        showReconnect(true);
+      }
+    }
+
     // ── Init ────────────────────────────────────────────────────
     async function init() {
       loadSavedTheme();
 
       if (DEV_MODE) {
         document.getElementById('dev-banner').style.display = 'block';
-      }
-
-      try {
-        if (DEV_MODE) {
-          state.profile = DEV_PROFILE;
-          document.getElementById('scan-order-btn').classList.add('hidden');
-          document.getElementById('scan-track-btn').classList.add('hidden');
-        } else {
-          // liff.init() can fail with "Failed to fetch" right after the webview
-          // reloads from scanCodeV2 — network is briefly unavailable. Retry.
-          let initErr;
-          for (let i = 0; i < 4; i++) {
-            try {
-              dbg('liff.init attempt ' + (i+1));
-              await liff.init({ liffId: LIFF_ID });
-              initErr = null;
-              break;
-            } catch (e) {
-              initErr = e;
-              dbg('init fail: ' + e.message + ' — wait ' + (1000*(i+1)) + 'ms');
-              await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-            }
-          }
-          if (initErr) throw initErr;
-
-          await liff.ready;
-          dbg('ready | loggedIn=' + liff.isLoggedIn() + ' inClient=' + liff.isInClient());
-          dbg('cache=' + (getCachedProfile() ? getCachedProfile().displayName : 'none'));
-
-          if (!liff.isLoggedIn()) {
-            dbg('NOT logged in -> liff.login()');
-            liff.login();
-            return;
-          }
-
-          dbg('getProfile...');
-          state.profile = await getProfileWithRetry();
-          dbg('ok: ' + state.profile.displayName);
-
-          if (!liff.isInClient()) {
-            document.getElementById('scan-order-btn').classList.add('hidden');
-            document.getElementById('scan-track-btn').classList.add('hidden');
-          }
-        }
-
+        state.profile = DEV_PROFILE;
+        document.getElementById('scan-order-btn').classList.add('hidden');
+        document.getElementById('scan-track-btn').classList.add('hidden');
         bindProfileToUI(state.profile);
-
-      } catch (err) {
-        dbg('FINAL ERR: ' + err.message);
-        const cached = getCachedProfile();
-        const isLINE = /Line\//i.test(navigator.userAgent);
-        dbg('cache=' + (cached ? cached.displayName : 'none') + ' isLINE=' + isLINE);
-        if (cached && isLINE) {
-          state.profile = cached;
-          bindProfileToUI(state.profile);
-          setTimeout(async () => {
-            try {
-              await liff.init({ liffId: LIFF_ID });
-              const fresh = await liff.getProfile();
-              cacheProfile(fresh);
-              state.profile = fresh;
-              bindProfileToUI(fresh);
-              dbg('bg-refresh ok: ' + fresh.displayName);
-            } catch (e) { dbg('bg-refresh fail: ' + e.message); }
-          }, 3000);
-        } else {
-          applyGuestFallback();
-        }
+        revealApp();
+        loadDashboard();
+        return;
       }
 
-      // Reveal app
+      // Show whatever identity we already know, instantly — never blank/Guest
+      // while we still have a cached LINE profile from a previous session.
+      const cached = getCachedProfile();
+      const isLINE = /Line\//i.test(navigator.userAgent);
+      if (cached) {
+        state.profile = cached;
+        bindProfileToUI(cached);
+      } else if (!isLINE) {
+        applyGuestFallback();
+      }
+      revealApp();
+
+      // Load points using whatever userId we have (GAS doesn't need LIFF).
+      if (state.profile && state.profile.userId && state.profile.userId !== 'GUEST') {
+        loadDashboard();
+      }
+
+      // Connect to LINE in the background, and self-heal on visible/online.
+      await connectLiff();
+      if (_liffConnected) loadDashboard();   // refresh once we have a real session
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && !_liffConnected) {
+          connectLiff().then(() => { if (_liffConnected) loadDashboard(); });
+        }
+      });
+      window.addEventListener('online', () => {
+        if (!_liffConnected) connectLiff().then(() => { if (_liffConnected) loadDashboard(); });
+      });
+      const rbtn = document.getElementById('reconnect-btn');
+      if (rbtn) rbtn.addEventListener('click', () => {
+        connectLiff().then(() => { if (_liffConnected) loadDashboard(); });
+      });
+    }
+
+    function revealApp() {
       document.getElementById('loading-screen').style.display = 'none';
       document.getElementById('app-container').style.display  = 'block';
-
-      // Fetch dashboard
-      loadDashboard();
     }
 
     window.onload = init;
