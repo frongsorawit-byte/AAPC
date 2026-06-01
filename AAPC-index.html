@@ -1448,6 +1448,12 @@
       catch (e) { dbg('liffsdk no-cors: ' + e.message + ' (host BLOCKED)'); }
       try { const r = await _origFetch(_liffsdkUrl, { mode: 'cors', cache: 'no-store' }); dbg('liffsdk cors: ' + r.status); }
       catch (e) { dbg('liffsdk cors: ' + e.message + ' (CORS rejected)'); }
+      // (1) credentialed CORS — liff may send cookies; wildcard ACAO would reject
+      try { const r = await _origFetch(_liffsdkUrl, { mode: 'cors', credentials: 'include', cache: 'no-store' }); dbg('liffsdk creds: ' + r.status); }
+      catch (e) { dbg('liffsdk creds: ' + e.message + ' ← creds CORS FAIL'); }
+      // (2) default cache — liff may hit a poisoned cache entry
+      try { const r = await _origFetch(_liffsdkUrl); dbg('liffsdk default-cache: ' + r.status); }
+      catch (e) { dbg('liffsdk default-cache: ' + e.message + ' ← cache FAIL'); }
 
       // Show whatever identity we already know, instantly — never blank/Guest
       // while we still have a cached LINE profile from a previous session.
