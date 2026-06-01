@@ -1383,7 +1383,7 @@
           dbg('connected: ' + p.displayName);
         } catch (e) {
           lastErr = e;
-          dbg('fail: ' + e.message);
+          dbg('fail: ' + e.name + ' / ' + e.message);
           if (document.visibilityState === 'hidden') break;   // wait for visible
           await new Promise(r => setTimeout(r, 1500 * (i + 1)));
         }
@@ -1395,6 +1395,16 @@
         // Keep showing cached identity; offer a manual retry. Auto-retry will
         // also fire on the next visibility/online event.
         showReconnect(true);
+      }
+    }
+
+    // ── Connectivity probe (temporary diagnostic) ──────────────
+    async function probe(label, url) {
+      try {
+        await fetch(url, { mode: 'no-cors', cache: 'no-store' });
+        dbg('probe ' + label + ': OK');
+      } catch (e) {
+        dbg('probe ' + label + ': ' + e.name + ' / ' + e.message);
       }
     }
 
@@ -1412,6 +1422,14 @@
         loadDashboard();
         return;
       }
+
+      // --- diagnostics: where does the network actually reach? ---
+      dbg('href=' + location.href.slice(0, 70));
+      dbg('UA=' + navigator.userAgent.slice(0, 70));
+      dbg('liff loaded=' + (typeof liff !== 'undefined') + ' getVer=' + (typeof liff !== 'undefined' && liff.getVersion ? liff.getVersion() : '?'));
+      await probe('GAS', GAS_URL);
+      await probe('LINE-cdn', 'https://static.line-scdn.net/liff/edge/2/sdk.js');
+      await probe('LINE-api', 'https://api.line.me/');
 
       // Show whatever identity we already know, instantly — never blank/Guest
       // while we still have a cached LINE profile from a previous session.
