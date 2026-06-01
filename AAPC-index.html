@@ -1341,9 +1341,8 @@
     async function connectLiff() {
       if (_liffConnected || _connecting) return;
       if (document.visibilityState === 'hidden') {
-        dbg('hidden — defer connect until visible');
         showReconnect(false);
-        return;            // re-triggered by visibilitychange
+        return;
       }
       _connecting = true;
       showReconnect(false);
@@ -1366,6 +1365,8 @@
         } catch (e) {
           lastErr = e;
           if (document.visibilityState === 'hidden') break;
+          const rt = document.getElementById('reconnect-text');
+          if (rt) rt.textContent = '[' + (i+1) + '/3] ' + (e?.message || String(e));
           if (e?.message?.includes('Failed to fetch')) {
             try { await fetch('https://liffsdk.line-scdn.net/xlt/manifest.json', { cache: 'reload' }); } catch (_) {}
           }
