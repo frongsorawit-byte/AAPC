@@ -1268,6 +1268,39 @@
       }
     }
 
+    // ── Profile helpers ─────────────────────────────────────────
+    // getProfile() can throw transiently right after the LIFF view reloads
+    // (e.g. returning from the camera/scanCodeV2) while the access token is
+    // being refreshed. Retry a few times before giving up.
+    async function getProfileWithRetry(attempts = 3) {
+      let lastErr;
+      for (let i = 0; i < attempts; i++) {
+        try {
+          return await liff.getProfile();
+        } catch (err) {
+          lastErr = err;
+          await new Promise(r => setTimeout(r, 300 * (i + 1)));
+        }
+      }
+      throw lastErr;
+    }
+
+    function bindProfileToUI(p) {
+      document.getElementById('user-name').textContent = p.displayName || 'Member';
+      document.getElementById('user-sub').textContent  = DEV_MODE ? 'DEV MODE' : 'LINE Member';
+      if (p.pictureUrl) {
+        document.getElementById('user-pic').src = p.pictureUrl;
+      }
+    }
+
+    function applyGuestFallback() {
+      state.profile = { userId: 'GUEST', displayName: 'Guest', pictureUrl: '' };
+      document.getElementById('user-name').textContent = 'Guest';
+      document.getElementById('user-sub').textContent  = 'ไม่ได้เชื่อมต่อ LINE';
+      document.getElementById('scan-order-btn').classList.add('hidden');
+      document.getElementById('scan-track-btn').classList.add('hidden');
+    }
+
     // ── Init ────────────────────────────────────────────────────
     async function init() {
       loadSavedTheme();
@@ -1284,13 +1317,20 @@
           document.getElementById('scan-track-btn').classList.add('hidden');
         } else {
           await liff.init({ liffId: LIFF_ID });
+          // Wait for the SDK to finish restoring login/token state. This is
+          // important after the LIFF view reloads on return from the camera —
+          // without it, isLoggedIn()/getProfile() can fire before the token is
+          // ready and wrongly drop the user to Guest.
+          await liff.ready;
 
           if (!liff.isLoggedIn()) {
             liff.login();
             return;
           }
 
-          state.profile = await liff.getProfile();
+          state.profile = await getProfileWithRetry();
+          // Got a valid profile — clear any re-login loop guard from a prior failure.
+          try { sessionStorage.removeItem('aapc-relogin'); } catch (_) {}
 
           // Hide scan buttons when not running inside LINE client (e.g. desktop browser preview of LIFF URL)
           if (!liff.isInClient()) {
@@ -1299,22 +1339,26 @@
           }
         }
 
-        // Bind profile to UI
-        const p = state.profile;
-        document.getElementById('user-name').textContent = p.displayName || 'Member';
-        document.getElementById('user-sub').textContent  = DEV_MODE ? 'DEV MODE' : 'LINE Member';
-        if (p.pictureUrl) {
-          document.getElementById('user-pic').src = p.pictureUrl;
-        }
+        bindProfileToUI(state.profile);
 
       } catch (err) {
         console.error('[AAPC] init error:', err);
-        // Guest fallback
-        state.profile = { userId: 'GUEST', displayName: 'Guest', pictureUrl: '' };
-        document.getElementById('user-name').textContent = 'Guest';
-        document.getElementById('user-sub').textContent  = 'ไม่ได้เชื่อมต่อ LINE';
-        document.getElementById('scan-order-btn').classList.add('hidden');
-        document.getElementById('scan-track-btn').classList.add('hidden');
+        // Inside the LINE client the user is ALWAYS a real member. A failure
+        // here is almost always a transient token issue (e.g. after returning
+        // from scanCodeV2) — re-login to refresh the session instead of
+        // demoting them to Guest, which would lose their points/identity.
+        // Guard against an infinite redirect loop: only auto re-login once.
+        if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+          let triedRelogin = false;
+          try { triedRelogin = sessionStorage.getItem('aapc-relogin') === '1'; } catch (_) {}
+          if (!triedRelogin) {
+            try { sessionStorage.setItem('aapc-relogin', '1'); } catch (_) {}
+            liff.login();
+            return;
+          }
+        }
+        // Genuinely outside LINE (desktop browser, SDK failed to load) → Guest
+        applyGuestFallback();
       }
 
       // Reveal app
