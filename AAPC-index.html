@@ -1365,7 +1365,7 @@
       showReconnect(false);
 
       let lastErr;
-      for (let i = 0; i < 5 && !_liffConnected; i++) {
+      for (let i = 0; i < 2 && !_liffConnected; i++) {
         try {
           dbg('connect ' + (i + 1) + ' online=' + navigator.onLine + ' vis=' + document.visibilityState);
           await liff.init({ liffId: LIFF_ID });
@@ -1423,13 +1423,24 @@
         return;
       }
 
+      // --- diagnostics: intercept every fetch to see which URL liff.init hits ---
+      const _origFetch = window.fetch.bind(window);
+      window.fetch = function (input, opts) {
+        let url = (input && input.url) ? input.url : input;
+        url = String(url);
+        const short = url.replace(/^https?:\/\//, '').slice(0, 48);
+        return _origFetch(input, opts).then(r => {
+          dbg('→ ' + short + '  [' + r.status + ']');
+          return r;
+        }).catch(e => {
+          dbg('✗ ' + short + '  ' + e.message);
+          throw e;
+        });
+      };
+
       // --- diagnostics: where does the network actually reach? ---
       dbg('href=' + location.href.slice(0, 70));
-      dbg('UA=' + navigator.userAgent.slice(0, 70));
-      dbg('liff loaded=' + (typeof liff !== 'undefined') + ' getVer=' + (typeof liff !== 'undefined' && liff.getVersion ? liff.getVersion() : '?'));
-      await probe('GAS', GAS_URL);
-      await probe('LINE-cdn', 'https://static.line-scdn.net/liff/edge/2/sdk.js');
-      await probe('LINE-api', 'https://api.line.me/');
+      dbg('liff getVer=' + (typeof liff !== 'undefined' && liff.getVersion ? liff.getVersion() : '?'));
 
       // Show whatever identity we already know, instantly — never blank/Guest
       // while we still have a cached LINE profile from a previous session.
