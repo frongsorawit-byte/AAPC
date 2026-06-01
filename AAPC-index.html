@@ -1311,6 +1311,22 @@
       document.getElementById('scan-track-btn').classList.add('hidden');
     }
 
+    // ── Debug overlay (temporary) ────────────────────────────────
+    const _dbg = [];
+    function dbg(msg) {
+      _dbg.push(msg);
+      console.log('[AAPC]', msg);
+      let el = document.getElementById('debug-overlay');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'debug-overlay';
+        el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font:11px monospace;padding:8px;z-index:9999;max-height:40vh;overflow-y:auto;';
+        document.body.appendChild(el);
+      }
+      el.textContent = _dbg.join('\n');
+      el.scrollTop = el.scrollHeight;
+    }
+
     // ── Init ────────────────────────────────────────────────────
     async function init() {
       loadSavedTheme();
@@ -1322,25 +1338,26 @@
       try {
         if (DEV_MODE) {
           state.profile = DEV_PROFILE;
-          // hide scan buttons in DEV (LIFF SDK not active in browser)
           document.getElementById('scan-order-btn').classList.add('hidden');
           document.getElementById('scan-track-btn').classList.add('hidden');
         } else {
+          dbg('1. liff.init...');
           await liff.init({ liffId: LIFF_ID });
-          // Wait for the SDK to finish restoring login/token state. This is
-          // important after the LIFF view reloads on return from the camera —
-          // without it, isLoggedIn()/getProfile() can fire before the token is
-          // ready and wrongly drop the user to Guest.
+          dbg('2. liff.ready...');
           await liff.ready;
+          dbg('3. isLoggedIn=' + liff.isLoggedIn() + ' isInClient=' + liff.isInClient());
+          dbg('4. cache=' + (getCachedProfile() ? getCachedProfile().displayName : 'none'));
 
           if (!liff.isLoggedIn()) {
+            dbg('5. NOT logged in -> liff.login()');
             liff.login();
             return;
           }
 
+          dbg('5. getProfile (retry up to 5x)...');
           state.profile = await getProfileWithRetry();
+          dbg('6. profile ok: ' + state.profile.displayName);
 
-          // Hide scan buttons when not running inside LINE client (e.g. desktop browser preview of LIFF URL)
           if (!liff.isInClient()) {
             document.getElementById('scan-order-btn').classList.add('hidden');
             document.getElementById('scan-track-btn').classList.add('hidden');
@@ -1350,12 +1367,9 @@
         bindProfileToUI(state.profile);
 
       } catch (err) {
-        console.error('[AAPC] init error:', err);
-        // getProfile() can fail transiently after scanCodeV2 reloads the webview
-        // while the access token is refreshing. Use the locally-cached profile
-        // (written on last successful login) so the user never sees "Guest".
-        // Once visible, silently retry in the background to get a fresh profile.
+        dbg('ERR: ' + err.message);
         const cached = getCachedProfile();
+        dbg('cache fallback: ' + (cached ? cached.displayName : 'none'));
         if (cached && typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
           state.profile = cached;
           bindProfileToUI(state.profile);
@@ -1365,10 +1379,10 @@
               cacheProfile(fresh);
               state.profile = fresh;
               bindProfileToUI(fresh);
-            } catch (_) {}
+              dbg('bg-refresh ok: ' + fresh.displayName);
+            } catch (e) { dbg('bg-refresh fail: ' + e.message); }
           }, 3000);
         } else {
-          // No cache or outside LINE — genuine guest
           applyGuestFallback();
         }
       }
