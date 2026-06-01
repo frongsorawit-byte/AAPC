@@ -1442,6 +1442,13 @@
       dbg('href=' + location.href.slice(0, 70));
       dbg('liff getVer=' + (typeof liff !== 'undefined' && liff.getVersion ? liff.getVersion() : '?'));
 
+      // Test the EXACT failing URL in both modes to tell CORS vs network block.
+      const _liffsdkUrl = 'https://liffsdk.line-scdn.net/xlt/manifest.json';
+      try { await _origFetch(_liffsdkUrl, { mode: 'no-cors', cache: 'no-store' }); dbg('liffsdk no-cors: OK (host reachable)'); }
+      catch (e) { dbg('liffsdk no-cors: ' + e.message + ' (host BLOCKED)'); }
+      try { const r = await _origFetch(_liffsdkUrl, { mode: 'cors', cache: 'no-store' }); dbg('liffsdk cors: ' + r.status); }
+      catch (e) { dbg('liffsdk cors: ' + e.message + ' (CORS rejected)'); }
+
       // Show whatever identity we already know, instantly — never blank/Guest
       // while we still have a cached LINE profile from a previous session.
       const cached = getCachedProfile();
