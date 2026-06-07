@@ -705,6 +705,374 @@
     .info-row:last-child { border-bottom: none; }
     .info-key { font-size: 13px; font-weight: 500; color: var(--black); }
     .info-val { font-size: 12px; font-weight: 300; color: var(--grey-600); }
+
+    /* ── Redeem: member-card callout ── */
+    .redeem-callout {
+      margin-top: 18px;
+      padding: 16px 18px;
+      background: var(--caramel-lt);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .redeem-callout-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      color: var(--caramel);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .redeem-callout-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 30px;
+      color: var(--black);
+      line-height: 1.1;
+      margin-top: 2px;
+    }
+    .redeem-callout-unit {
+      font-size: 11px;
+      font-family: 'Montserrat', sans-serif;
+      color: var(--grey-600);
+      margin-left: 6px;
+    }
+    .redeem-callout-btn {
+      flex-shrink: 0;
+      background: var(--black);
+      color: var(--white);
+      border: none;
+      border-radius: 4px;
+      padding: 0 18px;
+      height: 44px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+    }
+    .redeem-callout-btn:disabled { background: var(--grey-200); color: var(--grey-400); cursor: not-allowed; }
+
+    /* ── Redeem: balance hero ── */
+    .redeem-hero {
+      margin: 20px 16px;
+      background: var(--card-top-bg);
+      border-radius: 8px;
+      padding: 28px 24px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+    .redeem-rate-pill {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.18);
+      color: var(--white);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .redeem-hero-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: rgba(255, 255, 255, 0.65);
+      margin-bottom: 10px;
+    }
+    .redeem-hero-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 64px;
+      color: var(--white);
+      line-height: 1;
+    }
+    .redeem-hero-unit {
+      font-size: 14px;
+      font-family: 'Montserrat', sans-serif;
+      color: rgba(255, 255, 255, 0.65);
+      margin-left: 6px;
+    }
+    .redeem-hero-sub { font-size: 12px; color: rgba(255, 255, 255, 0.75); margin-top: 10px; }
+
+    /* ── Redeem: selector ── */
+    .section-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .section-label-row .section-label { margin-bottom: 0; }
+    .section-hint { font-size: 10.5px; color: var(--grey-400); letter-spacing: 0.06em; }
+    .redeem-quick { display: flex; gap: 8px; margin-bottom: 18px; }
+    .quick-btn {
+      flex: 1;
+      height: 48px;
+      border: 1px solid var(--grey-200);
+      background: var(--grey-50);
+      color: var(--black);
+      border-radius: 4px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+    }
+    .quick-btn.active { background: var(--black); color: var(--white); border-color: var(--black); }
+    .quick-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .stepper-wrap {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+    .stepper-btn {
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--grey-200);
+      background: var(--white);
+      color: var(--black);
+      border-radius: 50%;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .stepper-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .stepper-display { text-align: center; min-width: 70px; }
+    .stepper-units { font-family: 'Cormorant Garamond', serif; font-size: 40px; color: var(--black); line-height: 1; }
+    .stepper-units-label {
+      font-size: 10px;
+      color: var(--grey-400);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-top: 2px;
+    }
+    .redeem-breakdown { border-top: 1px solid var(--grey-100); padding-top: 14px; margin-top: 4px; }
+    .bd-row { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; font-size: 13px; }
+    .bd-row span:first-child { font-weight: 500; color: var(--grey-600); }
+    .bd-row span:last-child { color: var(--black); font-weight: 500; }
+    .bd-total { border-top: 1px solid var(--grey-100); margin-top: 6px; padding-top: 12px; }
+    .bd-total span:first-child { font-size: 15px; font-weight: 600; color: var(--black); }
+    .bd-total span:last-child { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--caramel); }
+
+    /* ── Redeem: coupon vault ── */
+    .coupon-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--grey-100);
+    }
+    .coupon-item:last-child { border-bottom: none; }
+    .coupon-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 4px;
+      background: var(--caramel-lt);
+      color: var(--caramel);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .coupon-info { flex: 1; min-width: 0; }
+    .coupon-value { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--black); line-height: 1.2; }
+    .coupon-code { font-size: 12px; color: var(--grey-600); letter-spacing: 0.04em; margin-top: 1px; }
+    .coupon-expiry { font-size: 10.5px; color: var(--grey-400); margin-top: 2px; }
+    .coupon-status {
+      flex-shrink: 0;
+      font-size: 9.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 9px;
+      border-radius: 2px;
+    }
+    .coupon-status.active { background: var(--success-bg); color: var(--success-text); }
+    .coupon-status.used { background: var(--grey-100); color: var(--grey-600); }
+    .coupon-used-label {
+      font-size: 9.5px;
+      color: var(--grey-400);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-weight: 600;
+      margin: 14px 0 4px;
+    }
+    .redeem-empty { text-align: center; padding: 24px 8px; font-size: 13px; font-weight: 300; color: var(--grey-400); line-height: 1.7; }
+    .redeem-empty .glyph { font-size: 28px; color: var(--grey-200); display: block; margin-bottom: 8px; }
+
+    /* ── Redeem: confirm sheet + success ── */
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 9998;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .sheet-overlay.center { align-items: center; }
+    .sheet {
+      background: var(--white);
+      width: 100%;
+      max-width: 430px;
+      border-radius: 16px 16px 0 0;
+      padding: 20px 20px 28px;
+      animation: sheetUp 0.3s var(--ease);
+    }
+    @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .sheet-handle { width: 36px; height: 4px; background: var(--grey-200); border-radius: 2px; margin: 0 auto 16px; }
+    .sheet-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; color: var(--black); text-align: center; margin-bottom: 18px; }
+    .sheet-summary { margin-bottom: 18px; }
+    .btn-text {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--grey-400);
+      font-family: 'Montserrat', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 14px;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .success-card {
+      background: var(--white);
+      width: 100%;
+      max-width: 390px;
+      margin: 0 16px;
+      border-radius: 16px;
+      padding: 32px 24px;
+      text-align: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .success-check {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--success-bg);
+      color: var(--success-text);
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .success-title { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--black); margin-bottom: 6px; }
+    .success-sub { font-size: 12px; color: var(--grey-400); margin-bottom: 20px; }
+    .coupon-code-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--grey-50);
+      border: 1px dashed var(--caramel);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+    .coupon-code-box span { flex: 1; font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: 0.08em; color: var(--black); }
+    .copy-btn {
+      background: var(--black);
+      color: var(--white);
+      border: none;
+      border-radius: 4px;
+      padding: 8px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .success-meta { margin-bottom: 20px; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 90px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--grey-800);
+      color: var(--parchment);
+      font-size: 12px;
+      padding: 10px 18px;
+      border-radius: 20px;
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      max-width: 80%;
+      text-align: center;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── PDPA Consent Gate ── */
+    #consent-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--parchment);
+      z-index: 10001;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      overflow-y: auto;
+    }
+    .consent-body {
+      max-width: 340px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .consent-wordmark {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 30px;
+      letter-spacing: 0.3em;
+      color: var(--black);
+    }
+    .consent-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--caramel);
+      text-align: center;
+    }
+    .consent-text {
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--grey-600);
+      line-height: 1.85;
+      text-align: center;
+      margin: 0;
+    }
+    .consent-link {
+      font-size: 12px;
+      color: var(--caramel);
+      text-decoration: underline;
+      font-weight: 500;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .consent-note {
+      font-size: 10px;
+      color: var(--grey-400);
+      text-align: center;
+      line-height: 1.7;
+      margin: 0;
+    }
   </style>
 </head>
 
@@ -750,7 +1118,7 @@
           </div>
         </div>
         <div class="card-bottom">
-          <div class="points-label">Total Points</div>
+          <div class="points-label">Tier Points</div>
           <div class="points-display" id="points-display">
             <span class="skeleton skeleton-num"></span>
           </div>
@@ -763,6 +1131,16 @@
               <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
             </div>
             <p class="progress-label" id="progress-label">—</p>
+          </div>
+
+          <div class="redeem-callout" id="redeem-callout" style="display:none">
+            <div>
+              <div class="redeem-callout-label">Redeemable</div>
+              <div class="redeem-callout-value">
+                <span id="redeemable-value">0</span><span class="redeem-callout-unit">แต้ม · แลกได้</span>
+              </div>
+            </div>
+            <button class="redeem-callout-btn" id="redeem-callout-btn" onclick="goRedeem()">แลก →</button>
           </div>
         </div>
       </div>
@@ -843,6 +1221,67 @@
       </div>
     </div>
 
+    <!-- ── REDEEM ── -->
+    <div class="page" id="page-redeem">
+      <div class="page-header">
+        <span class="wordmark">ATIPA</span>
+        <span class="page-title">Redeem</span>
+      </div>
+
+      <div class="redeem-hero">
+        <div class="redeem-rate-pill">50 แต้ม = ฿50</div>
+        <div class="redeem-hero-label">Redeemable Points</div>
+        <div class="redeem-hero-value">
+          <span id="redeem-balance">0</span><span class="redeem-hero-unit">แต้ม</span>
+        </div>
+        <div class="redeem-hero-sub" id="redeem-hero-sub">เทียบเท่าส่วนลดสูงสุด ฿0</div>
+      </div>
+
+      <!-- selector (shown when balance ≥ 50) -->
+      <div class="card" id="redeem-select-card">
+        <div class="section-label-row">
+          <span class="section-label">เลือกจำนวนคูปอง</span>
+          <span class="section-hint" id="redeem-max">แลกได้สูงสุด 0 ใบ</span>
+        </div>
+        <div class="redeem-quick" id="redeem-quick"></div>
+        <div class="stepper-wrap">
+          <button class="stepper-btn" id="stepper-minus" onclick="stepUnits(-1)" aria-label="ลด">−</button>
+          <div class="stepper-display">
+            <div class="stepper-units" id="stepper-units">1</div>
+            <div class="stepper-units-label">ใบ</div>
+          </div>
+          <button class="stepper-btn" id="stepper-plus" onclick="stepUnits(1)" aria-label="เพิ่ม">+</button>
+        </div>
+        <div class="redeem-breakdown">
+          <div class="bd-row"><span>อัตราแลก</span><span>50 แต้ม = ฿50</span></div>
+          <div class="bd-row"><span>แต้มที่ใช้</span><span id="bd-points">−50 แต้ม</span></div>
+          <div class="bd-row bd-total"><span>ส่วนลดที่จะได้</span><span id="bd-baht">฿50</span></div>
+        </div>
+        <button class="btn-primary" id="redeem-continue" onclick="openConfirm()">ดำเนินการต่อ →</button>
+        <p class="note-text">
+          แต้มจะถูกหักทันทีเมื่อยืนยัน คูปองมีอายุ 30 วัน ใช้ได้กับการสั่งซื้อครั้งถัดไป — แจ้งรหัสคูปองกับแอดมินเพื่อรับส่วนลด
+        </p>
+      </div>
+
+      <!-- insufficient (shown when balance < 50) -->
+      <div class="card" id="redeem-insufficient" style="display:none">
+        <div class="section-label">แลกแต้มเป็นส่วนลด</div>
+        <div class="redeem-empty">
+          <span class="glyph">◇</span>
+          แต้มของคุณยังไม่ถึงขั้นต่ำสำหรับการแลก<br>(ขั้นต่ำ 50 แต้ม = ฿50 ต่อครั้ง)
+        </div>
+      </div>
+
+      <!-- coupon vault -->
+      <div class="card">
+        <div class="section-label-row">
+          <span class="section-label">คูปองของฉัน</span>
+          <span class="section-hint" id="coupon-count">0 ใบที่ใช้ได้</span>
+        </div>
+        <div id="coupon-list"><div class="redeem-empty">กำลังโหลด...</div></div>
+      </div>
+    </div>
+
     <!-- ── HISTORY ── -->
     <div class="page" id="page-history">
       <div class="page-header">
@@ -912,11 +1351,14 @@
 
     <!-- Tab Bar -->
     <nav id="tab-bar">
-      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
-        <span class="tab-icon">◈</span><span>Home</span>
-      </button>
       <button class="tab-btn" data-tab="collect" onclick="switchTab('collect')">
         <span class="tab-icon">✦</span><span>Collect</span>
+      </button>
+      <button class="tab-btn" data-tab="redeem" onclick="switchTab('redeem')">
+        <span class="tab-icon">❖</span><span>Redeem</span>
+      </button>
+      <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span class="tab-icon">◈</span><span>Home</span>
       </button>
       <button class="tab-btn" data-tab="history" onclick="switchTab('history')">
         <span class="tab-icon">◎</span><span>History</span>
@@ -946,6 +1388,70 @@
       </svg>
     </button>
 
+    <!-- Confirm bottom-sheet -->
+    <div class="sheet-overlay" id="confirm-overlay">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">ยืนยันการแลกแต้ม</div>
+        <div class="sheet-summary">
+          <div class="bd-row"><span>จำนวนคูปอง</span><span id="cf-units">1 ใบ</span></div>
+          <div class="bd-row"><span>แต้มที่ใช้</span><span id="cf-points">−50 แต้ม</span></div>
+          <div class="bd-row"><span>แต้มคงเหลือหลังแลก</span><span id="cf-remain">0 แต้ม</span></div>
+          <div class="bd-row bd-total"><span>ส่วนลดรวม</span><span id="cf-baht">฿50</span></div>
+        </div>
+        <button class="btn-primary" id="cf-confirm" onclick="confirmRedeem()">ยืนยันแลกแต้ม</button>
+        <button class="btn-text" onclick="closeConfirm()">ยกเลิก</button>
+      </div>
+    </div>
+
+    <!-- Success overlay -->
+    <div class="sheet-overlay center" id="success-overlay">
+      <div class="success-card">
+        <div class="success-check">✓</div>
+        <div class="success-title">แลกคูปองสำเร็จ</div>
+        <div class="success-sub">แจ้งรหัสนี้กับแอดมินเพื่อรับส่วนลด</div>
+        <div class="coupon-code-box">
+          <span id="success-code">ATIPA-XXXX-XXXX</span>
+          <button class="copy-btn" onclick="copyCode()">คัดลอก</button>
+        </div>
+        <div class="success-meta">
+          <div class="bd-row"><span>ส่วนลด</span><span id="success-value">฿50</span></div>
+          <div class="bd-row"><span>ใช้ได้ถึง</span><span id="success-expiry">—</span></div>
+        </div>
+        <button class="btn-primary" onclick="closeSuccess()">เสร็จสิ้น</button>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+  </div>
+
+  <!-- PDPA Consent Gate (full-screen, z-index 10001 — above everything) -->
+  <div id="consent-overlay">
+    <div class="consent-body">
+      <div class="consent-wordmark">ATIPA</div>
+      <div class="consent-label">นโยบายความเป็นส่วนตัว</div>
+      <p class="consent-text">
+        ATIPA เก็บข้อมูล LINE UserID ชื่อ และข้อมูลคะแนนสะสม
+        เพื่อให้บริการ Member Card เท่านั้น
+        ไม่มีการเปิดเผยข้อมูลส่วนตัวให้บุคคลภายนอก
+      </p>
+      <p class="consent-text">
+        ข้อมูลธุรกรรมเก่าเกิน 2 ปีจะถูก anonymize
+        ตามนโยบาย PDPA
+      </p>
+      <a class="consent-link" href="privacy.html" target="_blank">
+        อ่านนโยบายความเป็นส่วนตัวฉบับเต็ม →
+      </a>
+      <button class="btn-primary" id="consent-accept-btn" onclick="doAcceptConsent()">
+        ยอมรับและเข้าใช้งาน
+      </button>
+      <p class="consent-note">
+        กดยอมรับเพื่อเริ่มใช้งาน ATIPA Member Card<br>
+        คุณสามารถดูนโยบายได้ที่หน้า Info
+      </p>
+    </div>
   </div>
 
   <script>
@@ -972,10 +1478,13 @@
 
     // ── State ───────────────────────────────────────────────────
     const state = {
-      profile:    null,
-      gasProfile: null,
-      history:    null,
-      submitting: false,
+      profile:     null,
+      gasProfile:  null,
+      history:     null,
+      submitting:  false,
+      coupons:     null,   // lazy-loaded list of {code,units,value,issued,expiry,used,usedWithOrder}
+      redeemUnits: 1,
+      redeeming:   false,
     };
 
     // ── API ─────────────────────────────────────────────────────
@@ -995,6 +1504,28 @@
         return fetch(`${GAS_URL}?${p}`).then(r => r.json());
       },
       submitOrder(payload) {
+        return fetch(GAS_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body:    JSON.stringify(payload),
+        }).then(r => r.json());
+      },
+      getCoupons(userId) {
+        return fetch(`${GAS_URL}?action=getCoupons&userId=${encodeURIComponent(userId)}&t=${Date.now()}`)
+          .then(r => r.json());
+      },
+      redeem(payload) {
+        return fetch(GAS_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body:    JSON.stringify(payload),
+        }).then(r => r.json());
+      },
+      getConsent(userId) {
+        return fetch(`${GAS_URL}?action=getConsent&userId=${encodeURIComponent(userId)}&t=${Date.now()}`)
+          .then(r => r.json());
+      },
+      setConsent(payload) {
         return fetch(GAS_URL, {
           method:  'POST',
           headers: { 'Content-Type': 'text/plain' },
@@ -1062,15 +1593,24 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
       if (tabName === 'history' && state.history === null) loadHistory();
+      if (tabName === 'redeem') loadRedeem();
     }
 
+    function goRedeem() { switchTab('redeem'); }
+
     // ── Dashboard ───────────────────────────────────────────────
+    // DEV preview data — so the redeem UI is visible on localhost (real userId returns 0)
+    const DEV_GAS_PROFILE = { points: 540, redeemable: 180, tier: 'ทอง', nextTierName: 'เพชร', pointsToNext: 460, displayName: 'Dev Test' };
+
     async function loadDashboard() {
       if (!state.profile) return;
       try {
-        state.gasProfile = await API.getProfile(state.profile.userId);
-        renderDashboard(state.gasProfile);
+        let p = await API.getProfile(state.profile.userId);
+        if (DEV_MODE && (!p || (!p.points && !p.redeemable))) p = DEV_GAS_PROFILE;
+        state.gasProfile = p;
+        renderDashboard(p);
       } catch (err) {
+        if (DEV_MODE) { state.gasProfile = DEV_GAS_PROFILE; renderDashboard(DEV_GAS_PROFILE); return; }
         renderDashboardError(err);
       }
     }
@@ -1113,6 +1653,15 @@
       });
       const activeKey = tierMap[p.tier];
       if (activeKey) document.getElementById('guide-' + activeKey).classList.add('tier-active');
+
+      // Redeemable callout on the member card
+      const redeemable = Number(p.redeemable) || 0;
+      const callout = document.getElementById('redeem-callout');
+      if (callout) {
+        callout.style.display = 'flex';
+        document.getElementById('redeemable-value').textContent = redeemable.toLocaleString();
+        document.getElementById('redeem-callout-btn').disabled = redeemable < 50;
+      }
     }
 
     function renderDashboardError(err) {
@@ -1393,7 +1942,252 @@
       }
     }
 
+    // ── Redeem ──────────────────────────────────────────────────
+    const REDEEM_RATE = 50;
+
+    function redeemableBalance() { return Number(state.gasProfile && state.gasProfile.redeemable) || 0; }
+    function maxRedeemUnits()    { return Math.floor(redeemableBalance() / REDEEM_RATE); }
+
+    async function loadRedeem() {
+      renderRedeemBalance();
+      if (state.coupons === null) {
+        try {
+          const res = await API.getCoupons(state.profile.userId);
+          state.coupons = (res && res.coupons) || [];
+        } catch (_) { state.coupons = []; }
+        if (DEV_MODE && state.coupons.length === 0) {
+          state.coupons = [
+            { code: 'ATIPA-7K2H-9P4M', value: 50,  units: 1, issued: '10/05/2026', expiry: '09/06/2026', used: false },
+            { code: 'ATIPA-3X8B-Q5W2', value: 100, units: 2, issued: '02/04/2026', expiry: '02/05/2026', used: true, usedWithOrder: '583650970173408913' },
+          ];
+        }
+      }
+      renderCoupons();
+    }
+
+    function renderRedeemBalance() {
+      const bal = redeemableBalance();
+      const maxUnits = maxRedeemUnits();
+      document.getElementById('redeem-balance').textContent = bal.toLocaleString();
+      document.getElementById('redeem-hero-sub').textContent =
+        `เทียบเท่าส่วนลดสูงสุด ฿${(maxUnits * REDEEM_RATE).toLocaleString()}`;
+
+      const hasEnough = maxUnits >= 1;
+      document.getElementById('redeem-select-card').style.display  = hasEnough ? 'block' : 'none';
+      document.getElementById('redeem-insufficient').style.display = hasEnough ? 'none'  : 'block';
+      if (hasEnough) {
+        document.getElementById('redeem-max').textContent = `แลกได้สูงสุด ${maxUnits} ใบ`;
+        if (state.redeemUnits > maxUnits) state.redeemUnits = maxUnits;
+        if (state.redeemUnits < 1)        state.redeemUnits = 1;
+        refreshSelector();
+      }
+    }
+
+    function refreshSelector() {
+      const maxUnits = maxRedeemUnits();
+      // quick picks
+      const picks = [1, 2, 5, maxUnits].filter((v, i, a) => v >= 1 && a.indexOf(v) === i).slice(0, 4);
+      document.getElementById('redeem-quick').innerHTML = picks.map(v =>
+        `<button class="quick-btn ${v === state.redeemUnits ? 'active' : ''}" onclick="setUnits(${v})">${v} ใบ</button>`
+      ).join('');
+      // stepper
+      document.getElementById('stepper-units').textContent = state.redeemUnits;
+      document.getElementById('stepper-minus').disabled = state.redeemUnits <= 1;
+      document.getElementById('stepper-plus').disabled  = state.redeemUnits >= maxUnits;
+      // breakdown
+      const pts = state.redeemUnits * REDEEM_RATE;
+      document.getElementById('bd-points').textContent = `−${pts.toLocaleString()} แต้ม`;
+      document.getElementById('bd-baht').textContent   = `฿${pts.toLocaleString()}`;
+    }
+
+    function setUnits(v) {
+      const m = maxRedeemUnits();
+      state.redeemUnits = Math.max(1, Math.min(v, m));
+      refreshSelector();
+    }
+    function stepUnits(d) { setUnits(state.redeemUnits + d); }
+
+    function openConfirm() {
+      const units = state.redeemUnits;
+      const pts   = units * REDEEM_RATE;
+      const bal   = redeemableBalance();
+      document.getElementById('cf-units').textContent  = `${units} ใบ`;
+      document.getElementById('cf-points').textContent = `−${pts.toLocaleString()} แต้ม`;
+      document.getElementById('cf-remain').textContent = `${(bal - pts).toLocaleString()} แต้ม`;
+      document.getElementById('cf-baht').textContent   = `฿${pts.toLocaleString()}`;
+      document.getElementById('confirm-overlay').style.display = 'flex';
+    }
+    function closeConfirm() { document.getElementById('confirm-overlay').style.display = 'none'; }
+
+    async function confirmRedeem() {
+      if (state.redeeming) return;
+      state.redeeming = true;
+      const btn = document.getElementById('cf-confirm');
+      btn.disabled = true; btn.textContent = 'กำลังแลก...';
+
+      const requestId = 'rdm_' + (state.profile.userId || 'x') + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      const payload = {
+        type:        'redeem',
+        userId:      state.profile.userId,
+        displayName: state.profile.displayName || '',
+        units:       state.redeemUnits,
+        requestId:   requestId,
+      };
+
+      try {
+        let res;
+        if (DEV_MODE) {
+          // simulate backend in dev
+          const pts = state.redeemUnits * REDEEM_RATE;
+          res = { status: 'success', redeemable: redeemableBalance() - pts,
+                  coupon: { code: 'ATIPA-' + Math.random().toString(36).slice(2, 6).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(),
+                            units: state.redeemUnits, value: pts, issued: '—', expiry: '—' } };
+        } else {
+          res = await API.redeem(payload);
+        }
+        if (!res || res.status !== 'success') throw new Error((res && res.message) || 'redeem failed');
+
+        if (typeof res.redeemable === 'number' && state.gasProfile) state.gasProfile.redeemable = res.redeemable;
+        if (state.coupons === null) state.coupons = [];
+        state.coupons.unshift({
+          code: res.coupon.code, units: res.coupon.units, value: res.coupon.value,
+          issued: res.coupon.issued, expiry: res.coupon.expiry, used: false,
+        });
+        state.history = null;        // history now has a แลกแต้ม row
+        state.redeemUnits = 1;
+
+        closeConfirm();
+        showSuccess(res.coupon);
+        renderRedeemBalance();
+        renderCoupons();
+        if (state.gasProfile) renderDashboard(state.gasProfile); // refresh member-card callout
+      } catch (err) {
+        closeConfirm();
+        const m = (err && err.message) || '';
+        showToast(m.indexOf('แต้ม') >= 0 ? m : ('แลกไม่สำเร็จ — ' + friendlyError(err)));
+      }
+
+      btn.disabled = false; btn.textContent = 'ยืนยันแลกแต้ม';
+      state.redeeming = false;
+    }
+
+    function showSuccess(c) {
+      document.getElementById('success-code').textContent   = c.code;
+      document.getElementById('success-value').textContent  = `฿${Number(c.value).toLocaleString()}`;
+      document.getElementById('success-expiry').textContent = c.expiry || '—';
+      document.getElementById('success-overlay').style.display = 'flex';
+    }
+    function closeSuccess() { document.getElementById('success-overlay').style.display = 'none'; }
+
+    function copyCode() {
+      const code = document.getElementById('success-code').textContent;
+      const done = () => showToast('คัดลอกรหัสแล้ว');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(done).catch(() => fallbackCopy(code, done));
+      } else {
+        fallbackCopy(code, done);
+      }
+    }
+    function fallbackCopy(text, cb) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand('copy'); cb(); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+
+    function renderCoupons() {
+      const wrap = document.getElementById('coupon-list');
+      const all = state.coupons || [];
+      const active = all.filter(c => !c.used);
+      const used   = all.filter(c =>  c.used);
+      document.getElementById('coupon-count').textContent = `${active.length} ใบที่ใช้ได้`;
+
+      if (all.length === 0) {
+        wrap.innerHTML = '<div class="redeem-empty">ยังไม่มีคูปอง — แลกแต้มเพื่อรับคูปองส่วนลดของคุณ</div>';
+        return;
+      }
+      const item = (c) => {
+        const sub = c.used
+          ? ('ใช้แล้ว' + (c.usedWithOrder ? ' · ออเดอร์ ' + escHtml(c.usedWithOrder) : ''))
+          : ('หมดอายุ ' + escHtml(c.expiry || '—'));
+        return `
+          <div class="coupon-item">
+            <div class="coupon-icon">฿</div>
+            <div class="coupon-info">
+              <div class="coupon-value">฿${Number(c.value).toLocaleString()}</div>
+              <div class="coupon-code">${escHtml(c.code)}</div>
+              <div class="coupon-expiry">${sub}</div>
+            </div>
+            <span class="coupon-status ${c.used ? 'used' : 'active'}">${c.used ? 'ใช้แล้ว' : 'พร้อมใช้'}</span>
+          </div>`;
+      };
+      let html = active.map(item).join('');
+      if (used.length) html += '<div class="coupon-used-label">ใช้แล้ว</div>' + used.map(item).join('');
+      wrap.innerHTML = html;
+    }
+
+    // ── Toast ───────────────────────────────────────────────────
+    let _toastTimer = null;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+
     // ── Init ────────────────────────────────────────────────────
+    // ── PDPA Consent ─────────────────────────────────────────────
+    const CONSENT_LS_KEY = 'aapc_consent_v1';
+
+    function hasLocalConsent() {
+      try { return localStorage.getItem(CONSENT_LS_KEY) === '1'; } catch(e) { return false; }
+    }
+    function markLocalConsent() {
+      try { localStorage.setItem(CONSENT_LS_KEY, '1'); } catch(e) {}
+    }
+    function showConsentOverlay() {
+      document.getElementById('consent-overlay').style.display = 'flex';
+    }
+    function hideConsentOverlay() {
+      document.getElementById('consent-overlay').style.display = 'none';
+    }
+
+    async function ensureConsent(userId, displayName) {
+      if (!userId || userId === 'GUEST') return;
+      if (hasLocalConsent()) {
+        // Background verify — update local flag if admin ever resets consent
+        API.getConsent(userId).then(r => { if (r && r.consented) markLocalConsent(); }).catch(() => {});
+        return;
+      }
+      try {
+        const r = await API.getConsent(userId);
+        if (r && r.consented) { markLocalConsent(); return; }
+      } catch(e) {
+        // Network error → fail-open (don't block user)
+        return;
+      }
+      // First-time user → show consent overlay
+      const btn = document.getElementById('consent-accept-btn');
+      btn.dataset.uid  = userId;
+      btn.dataset.name = displayName || '';
+      showConsentOverlay();
+    }
+
+    async function doAcceptConsent() {
+      const btn = document.getElementById('consent-accept-btn');
+      const userId      = btn.dataset.uid;
+      const displayName = btn.dataset.name;
+      btn.disabled    = true;
+      btn.textContent = 'กำลังบันทึก...';
+      try {
+        await API.setConsent({ type: 'consent', userId, displayName, version: '1.0' });
+      } catch(e) { /* silent fail-open */ }
+      markLocalConsent();
+      hideConsentOverlay();
+    }
+
     async function init() {
       loadSavedTheme();
 
@@ -1403,6 +2197,7 @@
         document.getElementById('scan-order-btn').classList.add('hidden');
         document.getElementById('scan-track-btn').classList.add('hidden');
         bindProfileToUI(state.profile);
+        hideConsentOverlay();   // DEV: skip consent gate
         revealApp();
         loadDashboard();
         return;
@@ -1428,6 +2223,11 @@
       // Connect to LINE in the background, and self-heal on visible/online.
       await connectLiff();
       if (_liffConnected) loadDashboard();   // refresh once we have a real session
+
+      // Consent gate — runs after LIFF connects so userId is confirmed
+      if (state.profile && state.profile.userId && state.profile.userId !== 'GUEST') {
+        await ensureConsent(state.profile.userId, state.profile.displayName);
+      }
 
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && !_liffConnected) {
