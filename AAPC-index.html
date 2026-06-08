@@ -446,6 +446,20 @@
       margin-top: 2px;
     }
 
+    .tier-value {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    .tier-benefit {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--caramel);
+      letter-spacing: 0.02em;
+    }
+
     .tier-range {
       font-size: 11px;
       font-weight: 400;
@@ -595,6 +609,14 @@
       font-size: 12px;
       font-weight: 300;
       color: var(--grey-400);
+      line-height: 1.6;
+    }
+
+    .scan-hint {
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 300;
+      color: var(--caramel);
       line-height: 1.6;
     }
 
@@ -1152,21 +1174,30 @@
             <div class="tier-name">เงิน</div>
             <div class="tier-name-sub">Silver</div>
           </div>
-          <div class="tier-range">0 – 499 คะแนน</div>
+          <div class="tier-value">
+            <div class="tier-benefit">ส่วนลด 5%</div>
+            <div class="tier-range">0 – 499 คะแนน</div>
+          </div>
         </div>
         <div class="tier-row" id="guide-gold">
           <div>
             <div class="tier-name">ทอง</div>
             <div class="tier-name-sub">Gold</div>
           </div>
-          <div class="tier-range">500 – 999 คะแนน</div>
+          <div class="tier-value">
+            <div class="tier-benefit">ส่วนลด 10%</div>
+            <div class="tier-range">500 – 999 คะแนน</div>
+          </div>
         </div>
         <div class="tier-row" id="guide-diamond">
           <div>
             <div class="tier-name">เพชร</div>
             <div class="tier-name-sub">Diamond</div>
           </div>
-          <div class="tier-range">1,000+ คะแนน</div>
+          <div class="tier-value">
+            <div class="tier-benefit">ส่วนลด 20%</div>
+            <div class="tier-range">1,000+ คะแนน</div>
+          </div>
         </div>
       </div>
     </div>
@@ -1186,9 +1217,10 @@
             <input type="text" id="collect-order" class="text-input"
               placeholder="เช่น 583650970173408913" inputmode="numeric" autocomplete="off">
             <button class="scan-btn hidden" id="scan-order-btn" onclick="scanBarcode('order')"
-              aria-label="สแกน Order ID" title="สแกน Order ID">
+              aria-label="สแกน Order ID ด้วยกล้อง" title="สแกน Order ID ด้วยกล้อง">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14"/>
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
               </svg>
             </button>
           </div>
@@ -1202,12 +1234,14 @@
             <input type="text" id="collect-track" class="text-input"
               placeholder="เช่น TH123456789" autocomplete="off">
             <button class="scan-btn" id="scan-track-btn" onclick="scanBarcode('track')"
-              aria-label="สแกน Barcode พัสดุ" title="สแกน Barcode พัสดุ">
+              aria-label="สแกนด้วยกล้อง" title="สแกนด้วยกล้อง">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 5v14M7 5v14M11 5v14M15 5v14M19 5v14"/>
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
               </svg>
             </button>
           </div>
+          <p class="scan-hint">แตะไอคอนกล้อง แล้วเล็งไปที่ QR Code บนใบปะหน้าพัสดุ — ระบบจะกรอกเลขให้อัตโนมัติ</p>
         </div>
 
         <button class="btn-primary" id="submit-btn" onclick="submitForm()">
@@ -1303,7 +1337,7 @@
       <div class="info-section">
         <div class="info-heading">วิธีสะสมคะแนน</div>
         <div class="info-body">
-          ทุกออเดอร์ที่มียอดสั่งซื้อ 200 บาทขึ้นไป รับ 1 คะแนน — ใช้ได้ทั้ง Order ID และ Tracking Number
+          รับ 1 แต้ม สำหรับทุกๆ ยอดสั่งซื้อ 200 บาท (ไม่รวมค่าจัดส่ง) — ใช้ได้ทั้ง Order ID และ Tracking Number
           ระบบตรวจสอบทุกวันและแจ้งผลทาง LINE ภายใน 1–2 วันทำการ
         </div>
       </div>
@@ -1312,12 +1346,8 @@
         <div class="info-heading">เงื่อนไขคะแนน</div>
         <div>
           <div class="info-row">
-            <span class="info-key">ยอดขั้นต่ำ</span>
-            <span class="info-val">200 บาท / ออเดอร์</span>
-          </div>
-          <div class="info-row">
-            <span class="info-key">คะแนนต่อออเดอร์</span>
-            <span class="info-val">1 คะแนน</span>
+            <span class="info-key">อัตราการสะสม</span>
+            <span class="info-val">ทุก 200 บาท = 1 แต้ม</span>
           </div>
           <div class="info-row">
             <span class="info-key">ออเดอร์ที่ยกเลิก</span>
@@ -1335,17 +1365,32 @@
         <div>
           <div class="info-row">
             <span class="info-key">เงิน — Silver</span>
-            <span class="info-val">0 – 499 คะแนน</span>
+            <span class="info-val">ส่วนลด 5% · 0–499 คะแนน</span>
           </div>
           <div class="info-row">
             <span class="info-key">ทอง — Gold</span>
-            <span class="info-val">500 – 999 คะแนน</span>
+            <span class="info-val">ส่วนลด 10% · 500–999 คะแนน</span>
           </div>
           <div class="info-row">
             <span class="info-key">เพชร — Diamond</span>
-            <span class="info-val">1,000 คะแนนขึ้นไป</span>
+            <span class="info-val">ส่วนลด 20% · 1,000+ คะแนน</span>
           </div>
         </div>
+        <p class="note-text">ส่วนลดประจำระดับใช้กับทุกคำสั่งซื้อผ่าน LINE</p>
+      </div>
+
+      <div class="info-section">
+        <div class="info-heading">การแลกแต้ม &amp; เงื่อนไข</div>
+        <div>
+          <div class="info-row">
+            <span class="info-key">อัตราแลกเปลี่ยน</span>
+            <span class="info-val">50 แต้ม = ส่วนลด 50 บาท</span>
+          </div>
+        </div>
+        <p class="note-text">
+          สิทธิพิเศษระดับสมาชิกและการใช้แต้มเป็นส่วนลด ใช้ได้เฉพาะคำสั่งซื้อผ่าน LINE เท่านั้น
+          ไม่สามารถใช้กับช่องทางอื่น (TikTok Shop, Shopee, Lazada)
+        </p>
       </div>
     </div>
 
