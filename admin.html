@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ATIPA — Admin Redeem</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Montserrat:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #0A0A0A;
+      --grey-800: #2C2C2C;
+      --grey-600: #555555;
+      --grey-400: #909090;
+      --grey-200: #C8C8C8;
+      --grey-100: #E8E8E8;
+      --grey-50: #F4F4F4;
+      --caramel: #B8834E;
+      --caramel-lt: #F3EAD9;
+      --parchment: #F7F3EC;
+      --white: #FFFFFF;
+      --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+      --body-bg: #D1D1D1;
+      --success-bg: #E6F4EA;
+      --success-text: #1E7E34;
+      --pending-bg: #FFF4E5;
+      --pending-text: #B26A06;
+      --error-bg: #FDF2F2;
+      --error-text: #7B2020;
+      --card-top-bg: #602E2E;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      background: var(--body-bg);
+      color: var(--black);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app-container {
+      width: 100%;
+      max-width: 430px;
+      background: var(--parchment);
+      min-height: 100vh;
+      position: relative;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      padding: 24px 20px 18px;
+      border-bottom: 1px solid var(--grey-100);
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .wordmark {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400;
+      font-size: 29px;
+      letter-spacing: 0.25em;
+      color: var(--black);
+      line-height: 1.2;
+    }
+    .page-title {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--grey-400);
+    }
+
+    /* ── Admin bar ── */
+    .admin-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background: var(--caramel-lt);
+      border-bottom: 1px solid var(--grey-100);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+    .admin-bar .who { color: var(--caramel); font-weight: 600; }
+    .admin-bar .logout {
+      background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--grey-600); text-decoration: underline;
+    }
+
+    .page { padding: 0 0 48px; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white);
+      margin: 16px;
+      padding: 20px;
+      border-radius: 4px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--grey-400);
+      margin-bottom: 14px;
+    }
+    .input-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--grey-600);
+      margin-bottom: 8px;
+    }
+
+    .text-input {
+      width: 100%;
+      height: 48px;
+      padding: 0 16px;
+      border: 1px solid var(--grey-200);
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 300;
+      border-radius: 4px;
+      outline: none;
+      background: var(--grey-50);
+      color: var(--black);
+      transition: border-color 250ms var(--ease), background 250ms var(--ease);
+    }
+    .text-input::placeholder { color: var(--grey-400); }
+    .text-input:focus { border-color: var(--black); background: var(--white); }
+    .text-input.code { text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
+    .field { margin-bottom: 16px; }
+
+    .btn-primary {
+      display: block;
+      width: 100%;
+      height: 48px;
+      background: var(--black);
+      color: var(--white);
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      cursor: pointer;
+      transition: opacity 250ms;
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+    .btn-primary:active:not(:disabled) { transform: scale(0.99); }
+    .btn-primary:disabled { background: var(--grey-200); color: var(--grey-400); cursor: not-allowed; }
+
+    .btn-ghost {
+      display: block; width: 100%; height: 46px;
+      background: none; color: var(--grey-600);
+      border: 1px solid var(--grey-200); border-radius: 4px;
+      font-family: inherit; font-weight: 600; font-size: 12px;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      cursor: pointer; margin-top: 10px;
+    }
+    .btn-ghost:hover { border-color: var(--black); color: var(--black); }
+
+    /* ── Status message ── */
+    .status-msg {
+      margin-top: 14px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 1.5;
+      border-radius: 4px;
+      display: none;
+    }
+    .status-msg.success { background: var(--success-bg); color: var(--success-text); display: block; }
+    .status-msg.error   { background: var(--error-bg);   color: var(--error-text);   display: block; }
+
+    /* ── Result card ── */
+    #result-card { display: none; }
+    .result-top {
+      text-align: center;
+      padding: 8px 0 18px;
+      border-bottom: 1px solid var(--grey-100);
+      margin-bottom: 18px;
+    }
+    .result-code {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      color: var(--grey-600);
+      margin-bottom: 10px;
+    }
+    .result-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: 60px;
+      line-height: 1;
+      color: var(--black);
+    }
+    .result-value .cur { font-size: 28px; vertical-align: 18px; margin-right: 2px; }
+    .result-sub { font-size: 11px; color: var(--grey-400); margin-top: 6px; letter-spacing: 0.04em; }
+
+    .status-pill {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-top: 14px;
+    }
+    .pill-valid   { background: var(--success-bg); color: var(--success-text); }
+    .pill-used    { background: var(--grey-100);   color: var(--grey-600); }
+    .pill-expired { background: var(--error-bg);   color: var(--error-text); }
+
+    .used-detail {
+      background: var(--grey-50);
+      border-radius: 4px;
+      padding: 14px 16px;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: var(--grey-600);
+    }
+    .used-detail b { color: var(--black); font-weight: 500; }
+
+    .hint { font-size: 11px; color: var(--grey-400); margin-top: 12px; line-height: 1.6; text-align: center; }
+  </style>
+</head>
+
+<body>
+  <div id="app-container">
+    <div class="page-header">
+      <div class="wordmark">ATIPA</div>
+      <div class="page-title">Admin · Redeem</div>
+    </div>
+
+    <!-- ░░ LOGIN ░░ -->
+    <div class="admin-bar" id="admin-bar" style="display:none">
+      <span>แอดมิน: <span class="who" id="who"></span></span>
+      <button class="logout" onclick="logout()">เปลี่ยน / ออก</button>
+    </div>
+
+    <div class="page" id="page-login">
+      <div class="card">
+        <div class="section-label">เข้าสู่ระบบแอดมิน</div>
+        <div class="field">
+          <label class="input-label" for="in-name">ชื่อแอดมิน</label>
+          <input class="text-input" id="in-name" type="text" placeholder="เช่น ฝน" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="input-label" for="in-pwd">รหัสร่วม</label>
+          <input class="text-input" id="in-pwd" type="password" placeholder="••••••" autocomplete="off">
+        </div>
+        <button class="btn-primary" id="btn-login" onclick="login()">เข้าสู่ระบบ</button>
+        <div class="status-msg error" id="login-err"></div>
+        <div class="hint">ใช้รหัสร่วมที่ได้รับจากผู้ดูแลระบบ · ชื่อจะถูกบันทึกว่าใครเป็นคนใช้คูปอง</div>
+      </div>
+    </div>
+
+    <!-- ░░ MAIN ░░ -->
+    <div class="page" id="page-main" style="display:none">
+      <!-- Lookup -->
+      <div class="card">
+        <div class="section-label">ตรวจคูปอง</div>
+        <div class="field">
+          <label class="input-label" for="in-code">รหัสคูปองจากลูกค้า</label>
+          <input class="text-input code" id="in-code" type="text" placeholder="ATIPA-XXXX-XXXX"
+                 autocomplete="off" autocapitalize="characters" onkeydown="if(event.key==='Enter')doLookup()">
+        </div>
+        <button class="btn-primary" id="btn-lookup" onclick="doLookup()">ตรวจสอบ</button>
+        <div class="status-msg error" id="lookup-err"></div>
+      </div>
+
+      <!-- Result -->
+      <div class="card" id="result-card">
+        <div class="result-top">
+          <div class="result-code" id="r-code"></div>
+          <div class="result-value"><span class="cur">฿</span><span id="r-value">0</span></div>
+          <div class="result-sub" id="r-expiry"></div>
+          <div><span class="status-pill" id="r-pill"></span></div>
+        </div>
+
+        <!-- valid → confirm -->
+        <div id="confirm-box">
+          <div class="field">
+            <label class="input-label" for="in-order">เลขออเดอร์ที่ใช้คูปอง</label>
+            <input class="text-input" id="in-order" type="text" placeholder="กรอกเลขออเดอร์"
+                   autocomplete="off" onkeydown="if(event.key==='Enter')doUse()">
+          </div>
+          <button class="btn-primary" id="btn-use" onclick="doUse()">ยืนยันใช้คูปอง</button>
+        </div>
+
+        <!-- used → detail -->
+        <div id="used-box" style="display:none">
+          <div class="used-detail" id="used-detail"></div>
+        </div>
+
+        <div class="status-msg" id="use-msg"></div>
+        <button class="btn-ghost" id="btn-next" onclick="resetLookup()" style="display:none">ตรวจใบถัดไป</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Config — GAS endpoint (same deployment as AAPC-index.html) ──
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyhuDE9-KVaxOKnneQXFVv0m9qFYoBQyJj1wGvIQzCgg1u3tI0kZq2BnB24-Y9-pvhyhg/exec';
+    const LS_NAME = 'aapc-admin-name';
+    const LS_PWD  = 'aapc-admin-pwd';
+
+    const $ = (id) => document.getElementById(id);
+    const adminName = () => localStorage.getItem(LS_NAME) || '';
+    const pwd       = () => localStorage.getItem(LS_PWD)  || '';
+    const normCode  = (c) => String(c || '').trim().toUpperCase();
+
+    const post = (payload) => fetch(GAS_URL, {
+      method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload)
+    }).then(r => r.json());
+
+    const API = {
+      lookup:    (code)                => post({ type: 'adminLookup',    code, password: pwd() }),
+      useCoupon: (code, orderId, name) => post({ type: 'adminUseCoupon', code, orderId, adminName: name, password: pwd() }),
+    };
+
+    let currentCode = '';
+
+    // ── Boot ──
+    function boot() {
+      if (adminName() && pwd()) showMain();
+      else showLogin();
+    }
+
+    function showLogin() {
+      $('admin-bar').style.display = 'none';
+      $('page-login').style.display = 'block';
+      $('page-main').style.display = 'none';
+      $('in-pwd').value = '';
+    }
+
+    function showMain() {
+      $('who').textContent = adminName();
+      $('admin-bar').style.display = 'flex';
+      $('page-login').style.display = 'none';
+      $('page-main').style.display = 'block';
+      resetLookup();
+      $('in-code').focus();
+    }
+
+    function login() {
+      const name = $('in-name').value.trim();
+      const p    = $('in-pwd').value.trim();
+      const err  = $('login-err');
+      err.style.display = 'none';
+      if (!name) { err.textContent = 'กรุณากรอกชื่อแอดมิน'; err.className = 'status-msg error'; return; }
+      if (!p)    { err.textContent = 'กรุณากรอกรหัสร่วม';  err.className = 'status-msg error'; return; }
+      localStorage.setItem(LS_NAME, name);
+      localStorage.setItem(LS_PWD, p);
+      showMain();
+    }
+
+    function logout() {
+      localStorage.removeItem(LS_PWD); // keep name for convenience, drop credential
+      showLogin();
+      $('in-name').value = adminName();
+    }
+
+    // ── Lookup ──
+    async function doLookup() {
+      const code = normCode($('in-code').value);
+      const err = $('lookup-err');
+      err.style.display = 'none';
+      $('result-card').style.display = 'none';
+      if (!code) { err.textContent = 'กรุณากรอกรหัสคูปอง'; err.className = 'status-msg error'; return; }
+
+      const btn = $('btn-lookup');
+      btn.disabled = true; btn.textContent = 'กำลังตรวจ...';
+      try {
+        const res = await API.lookup(code);
+        if (res.status === 'error' && res.code === 'auth') { bounceAuth(); return; }
+        if (res.status === 'notfound') { err.textContent = 'ไม่พบคูปองนี้ในระบบ'; err.className = 'status-msg error'; return; }
+        if (res.status !== 'ok')       { err.textContent = res.message || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'; err.className = 'status-msg error'; return; }
+        renderResult(res.coupon);
+      } catch (e) {
+        err.textContent = 'เชื่อมต่อไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่'; err.className = 'status-msg error';
+      } finally {
+        btn.disabled = false; btn.textContent = 'ตรวจสอบ';
+      }
+    }
+
+    function renderResult(c) {
+      currentCode = c.code;
+      $('r-code').textContent = c.code;
+      $('r-value').textContent = c.value;
+      $('result-card').style.display = 'block';
+      $('use-msg').style.display = 'none';
+      $('btn-next').style.display = 'none';
+
+      const pill = $('r-pill');
+      const confirmBox = $('confirm-box');
+      const usedBox = $('used-box');
+
+      if (c.state === 'valid') {
+        pill.textContent = 'ใช้ได้'; pill.className = 'status-pill pill-valid';
+        $('r-expiry').textContent = c.expiry ? ('ใช้ได้ถึง ' + c.expiry) : '';
+        confirmBox.style.display = 'block';
+        usedBox.style.display = 'none';
+        $('in-order').value = '';
+        setTimeout(() => $('in-order').focus(), 100);
+      } else if (c.state === 'used') {
+        pill.textContent = 'ใช้ไปแล้ว'; pill.className = 'status-pill pill-used';
+        $('r-expiry').textContent = '';
+        confirmBox.style.display = 'none';
+        usedBox.style.display = 'block';
+        $('used-detail').innerHTML =
+          'คูปองนี้ถูกใช้ไปแล้ว<br>' +
+          (c.usedWithOrder ? 'ออเดอร์: <b>' + esc(c.usedWithOrder) + '</b><br>' : '') +
+          (c.usedBy ? 'โดย: <b>' + esc(c.usedBy) + '</b><br>' : '') +
+          (c.usedAt ? 'เมื่อ: <b>' + esc(c.usedAt) + '</b>' : '');
+        $('btn-next').style.display = 'block';
+      } else { // expired
+        pill.textContent = 'หมดอายุ'; pill.className = 'status-pill pill-expired';
+        $('r-expiry').textContent = c.expiry ? ('หมดอายุเมื่อ ' + c.expiry) : '';
+        confirmBox.style.display = 'none';
+        usedBox.style.display = 'none';
+        $('btn-next').style.display = 'block';
+      }
+    }
+
+    // ── Use ──
+    async function doUse() {
+      const orderId = $('in-order').value.trim();
+      const msg = $('use-msg');
+      msg.style.display = 'none';
+      if (!orderId) { msg.textContent = 'กรุณากรอกเลขออเดอร์'; msg.className = 'status-msg error'; return; }
+
+      const btn = $('btn-use');
+      btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+      try {
+        const res = await API.useCoupon(currentCode, orderId, adminName());
+        if (res.status === 'success') {
+          $('confirm-box').style.display = 'none';
+          msg.innerHTML = 'บันทึกแล้ว — คูปอง <b>฿' + res.coupon.value + '</b> ใช้กับออเดอร์ <b>' + esc(res.coupon.usedWithOrder) + '</b>';
+          msg.className = 'status-msg success';
+          $('btn-next').style.display = 'block';
+          $('r-pill').textContent = 'ใช้ไปแล้ว'; $('r-pill').className = 'status-pill pill-used';
+        } else if (res.code === 'auth') {
+          bounceAuth();
+        } else if (res.code === 'used') {
+          $('confirm-box').style.display = 'none';
+          msg.innerHTML = 'คูปองนี้เพิ่งถูกใช้ไปแล้ว' +
+            (res.usedWithOrder ? ' (ออเดอร์ ' + esc(res.usedWithOrder) + (res.usedBy ? ' โดย ' + esc(res.usedBy) : '') + ')' : '');
+          msg.className = 'status-msg error';
+          $('btn-next').style.display = 'block';
+        } else if (res.code === 'expired') {
+          msg.textContent = 'คูปองหมดอายุแล้ว ใช้ไม่ได้'; msg.className = 'status-msg error';
+        } else if (res.code === 'busy') {
+          msg.textContent = res.message || 'ระบบกำลังประมวลผล ลองใหม่ใน 1-2 นาที'; msg.className = 'status-msg error';
+        } else {
+          msg.textContent = res.message || 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง'; msg.className = 'status-msg error';
+        }
+      } catch (e) {
+        msg.textContent = 'เชื่อมต่อไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่'; msg.className = 'status-msg error';
+      } finally {
+        btn.disabled = false; btn.textContent = 'ยืนยันใช้คูปอง';
+      }
+    }
+
+    function resetLookup() {
+      currentCode = '';
+      $('result-card').style.display = 'none';
+      $('lookup-err').style.display = 'none';
+      $('in-code').value = '';
+      $('in-code').focus();
+    }
+
+    function bounceAuth() {
+      localStorage.removeItem(LS_PWD);
+      showLogin();
+      const err = $('login-err');
+      err.textContent = 'รหัสร่วมไม่ถูกต้อง กรุณากรอกใหม่';
+      err.className = 'status-msg error';
+      $('in-name').value = adminName();
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+
+    boot();
+  </script>
+</body>
+
+</html>
