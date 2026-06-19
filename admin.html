@@ -367,16 +367,32 @@
       $('in-code').focus();
     }
 
-    function login() {
+    async function login() {
       const name = $('in-name').value.trim();
       const p    = $('in-pwd').value.trim();
       const err  = $('login-err');
       err.style.display = 'none';
       if (!name) { err.textContent = 'กรุณากรอกชื่อแอดมิน'; err.className = 'status-msg error'; return; }
       if (!p)    { err.textContent = 'กรุณากรอกรหัสร่วม';  err.className = 'status-msg error'; return; }
-      localStorage.setItem(LS_NAME, name);
-      localStorage.setItem(LS_PWD, p);
-      showMain();
+
+      const btn = $('btn-login');
+      btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ...';
+      try {
+        const res = await post({ type: 'adminAuth', password: p });
+        if (res.status === 'ok') {
+          localStorage.setItem(LS_NAME, name);
+          localStorage.setItem(LS_PWD, p);
+          showMain();
+        } else {
+          err.textContent = 'รหัสร่วมไม่ถูกต้อง กรุณาลองใหม่';
+          err.className = 'status-msg error';
+        }
+      } catch (e) {
+        err.textContent = 'เชื่อมต่อไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่';
+        err.className = 'status-msg error';
+      } finally {
+        btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+      }
     }
 
     function logout() {
