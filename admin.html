@@ -246,6 +246,58 @@
     .used-detail b { color: var(--black); font-weight: 500; }
 
     .hint { font-size: 11px; color: var(--grey-400); margin-top: 12px; line-height: 1.6; text-align: center; }
+
+    /* ── Tool tabs ── */
+    .tool-tabs {
+      display: flex;
+      margin: 16px 16px 0;
+      border: 1px solid var(--grey-200);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .tool-tab {
+      flex: 1; height: 42px;
+      background: var(--white); border: none; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: var(--grey-400);
+      transition: background 250ms var(--ease), color 250ms var(--ease);
+    }
+    .tool-tab.active { background: var(--black); color: var(--white); }
+
+    /* ── Member result card ── */
+    .member-card {
+      background: var(--white);
+      margin: 12px 16px; padding: 16px;
+      border-radius: 4px;
+      display: flex; gap: 14px; align-items: center;
+    }
+    .member-pic {
+      width: 46px; height: 46px; border-radius: 50%;
+      object-fit: cover; background: var(--grey-100); flex-shrink: 0;
+    }
+    .member-info { flex: 1; min-width: 0; }
+    .member-name {
+      font-size: 14px; font-weight: 500; color: var(--black);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .member-meta { font-size: 11px; color: var(--grey-600); margin-top: 3px; line-height: 1.6; }
+    .member-side { text-align: right; flex-shrink: 0; }
+    .member-discount {
+      font-family: 'Cormorant Garamond', serif; font-weight: 400;
+      font-size: 30px; line-height: 1; color: var(--black);
+    }
+    .member-discount small { font-size: 12px; font-family: 'Montserrat', sans-serif; color: var(--grey-400); }
+    .tier-badge {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      padding: 3px 10px; border-radius: 20px; color: #fff; margin-top: 5px;
+    }
+    .tier-badge.silver  { background: #7C8894; }
+    .tier-badge.gold    { background: #B8834E; }
+    .tier-badge.diamond { background: #1C2B45; }
+    .member-empty { margin: 20px 16px; text-align: center; font-size: 13px; color: var(--grey-600); line-height: 1.7; }
+    .member-more { margin: 4px 16px 16px; text-align: center; font-size: 11px; color: var(--grey-400); }
   </style>
 </head>
 
@@ -253,7 +305,7 @@
   <div id="app-container">
     <div class="page-header">
       <div class="wordmark">ATIPA</div>
-      <div class="page-title">Admin · Redeem</div>
+      <div class="page-title">Admin Tools</div>
     </div>
 
     <!-- ░░ LOGIN ░░ -->
@@ -281,44 +333,69 @@
 
     <!-- ░░ MAIN ░░ -->
     <div class="page" id="page-main" style="display:none">
-      <!-- Lookup -->
-      <div class="card">
-        <div class="section-label">ตรวจคูปอง</div>
-        <div class="field">
-          <label class="input-label" for="in-code">รหัสคูปองจากลูกค้า</label>
-          <input class="text-input code" id="in-code" type="text" placeholder="ATIPA-XXXX-XXXX"
-                 autocomplete="off" autocapitalize="characters" onkeydown="if(event.key==='Enter')doLookup()">
-        </div>
-        <button class="btn-primary" id="btn-lookup" onclick="doLookup()">ตรวจสอบ</button>
-        <div class="status-msg error" id="lookup-err"></div>
+      <!-- Tool tabs -->
+      <div class="tool-tabs">
+        <button class="tool-tab active" id="tab-coupon" onclick="switchTool('coupon')">ตรวจคูปอง</button>
+        <button class="tool-tab" id="tab-member" onclick="switchTool('member')">ค้นหาสมาชิก</button>
       </div>
 
-      <!-- Result -->
-      <div class="card" id="result-card">
-        <div class="result-top">
-          <div class="result-code" id="r-code"></div>
-          <div class="result-value"><span class="cur">฿</span><span id="r-value">0</span></div>
-          <div class="result-sub" id="r-expiry"></div>
-          <div><span class="status-pill" id="r-pill"></span></div>
-        </div>
-
-        <!-- valid → confirm -->
-        <div id="confirm-box">
+      <!-- ── Tool: Coupon ── -->
+      <div id="tool-coupon">
+        <!-- Lookup -->
+        <div class="card">
+          <div class="section-label">ตรวจคูปอง</div>
           <div class="field">
-            <label class="input-label" for="in-order">เลขออเดอร์ที่ใช้คูปอง</label>
-            <input class="text-input" id="in-order" type="text" placeholder="กรอกเลขออเดอร์"
-                   autocomplete="off" onkeydown="if(event.key==='Enter')doUse()">
+            <label class="input-label" for="in-code">รหัสคูปองจากลูกค้า</label>
+            <input class="text-input code" id="in-code" type="text" placeholder="ATIPA-XXXX-XXXX"
+                   autocomplete="off" autocapitalize="characters" onkeydown="if(event.key==='Enter')doLookup()">
           </div>
-          <button class="btn-primary" id="btn-use" onclick="doUse()">ยืนยันใช้คูปอง</button>
+          <button class="btn-primary" id="btn-lookup" onclick="doLookup()">ตรวจสอบ</button>
+          <div class="status-msg error" id="lookup-err"></div>
         </div>
 
-        <!-- used → detail -->
-        <div id="used-box" style="display:none">
-          <div class="used-detail" id="used-detail"></div>
-        </div>
+        <!-- Result -->
+        <div class="card" id="result-card">
+          <div class="result-top">
+            <div class="result-code" id="r-code"></div>
+            <div class="result-value"><span class="cur">฿</span><span id="r-value">0</span></div>
+            <div class="result-sub" id="r-expiry"></div>
+            <div><span class="status-pill" id="r-pill"></span></div>
+          </div>
 
-        <div class="status-msg" id="use-msg"></div>
-        <button class="btn-ghost" id="btn-next" onclick="resetLookup()" style="display:none">ตรวจใบถัดไป</button>
+          <!-- valid → confirm -->
+          <div id="confirm-box">
+            <div class="field">
+              <label class="input-label" for="in-order">เลขออเดอร์ที่ใช้คูปอง</label>
+              <input class="text-input" id="in-order" type="text" placeholder="กรอกเลขออเดอร์"
+                     autocomplete="off" onkeydown="if(event.key==='Enter')doUse()">
+            </div>
+            <button class="btn-primary" id="btn-use" onclick="doUse()">ยืนยันใช้คูปอง</button>
+          </div>
+
+          <!-- used → detail -->
+          <div id="used-box" style="display:none">
+            <div class="used-detail" id="used-detail"></div>
+          </div>
+
+          <div class="status-msg" id="use-msg"></div>
+          <button class="btn-ghost" id="btn-next" onclick="resetLookup()" style="display:none">ตรวจใบถัดไป</button>
+        </div>
+      </div>
+
+      <!-- ── Tool: Member search ── -->
+      <div id="tool-member" style="display:none">
+        <div class="card">
+          <div class="section-label">ค้นหาสมาชิก</div>
+          <div class="field">
+            <label class="input-label" for="in-member-q">ชื่อลูกค้าใน LINE (พิมพ์บางส่วนได้)</label>
+            <input class="text-input" id="in-member-q" type="text" placeholder="เช่น ฝน, Nong…"
+                   autocomplete="off" onkeydown="if(event.key==='Enter')doMemberSearch()">
+          </div>
+          <button class="btn-primary" id="btn-member-search" onclick="doMemberSearch()">ค้นหา</button>
+          <div class="status-msg error" id="member-err"></div>
+          <div class="hint">แสดงระดับสมาชิก + % ส่วนลดสำหรับเปิดบิล · ผลลัพธ์สูงสุด 20 รายชื่อ</div>
+        </div>
+        <div id="member-results"></div>
       </div>
     </div>
   </div>
@@ -339,8 +416,9 @@
     }).then(r => r.json());
 
     const API = {
-      lookup:    (code)                => post({ type: 'adminLookup',    code, password: pwd() }),
-      useCoupon: (code, orderId, name) => post({ type: 'adminUseCoupon', code, orderId, adminName: name, password: pwd() }),
+      lookup:       (code)                => post({ type: 'adminLookup',       code, password: pwd() }),
+      useCoupon:    (code, orderId, name) => post({ type: 'adminUseCoupon',    code, orderId, adminName: name, password: pwd() }),
+      memberSearch: (query)               => post({ type: 'adminMemberSearch', query, password: pwd() }),
     };
 
     let currentCode = '';
@@ -508,6 +586,66 @@
       $('lookup-err').style.display = 'none';
       $('in-code').value = '';
       $('in-code').focus();
+    }
+
+    // ── Member search ──
+    function switchTool(name) {
+      $('tab-coupon').className = 'tool-tab' + (name === 'coupon' ? ' active' : '');
+      $('tab-member').className = 'tool-tab' + (name === 'member' ? ' active' : '');
+      $('tool-coupon').style.display = name === 'coupon' ? 'block' : 'none';
+      $('tool-member').style.display = name === 'member' ? 'block' : 'none';
+      (name === 'coupon' ? $('in-code') : $('in-member-q')).focus();
+    }
+
+    async function doMemberSearch() {
+      const q = $('in-member-q').value.trim();
+      const err = $('member-err');
+      err.style.display = 'none';
+      $('member-results').innerHTML = '';
+      if (q.length < 2) { err.textContent = 'กรุณากรอกชื่ออย่างน้อย 2 ตัวอักษร'; err.className = 'status-msg error'; return; }
+
+      const btn = $('btn-member-search');
+      btn.disabled = true; btn.textContent = 'กำลังค้นหา...';
+      try {
+        const res = await API.memberSearch(q);
+        if (res.status === 'error' && res.code === 'auth') { bounceAuth(); return; }
+        if (res.status === 'error' && res.code === 'shortquery') { err.textContent = 'กรุณากรอกชื่ออย่างน้อย 2 ตัวอักษร'; err.className = 'status-msg error'; return; }
+        if (res.status !== 'ok') { err.textContent = res.message || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'; err.className = 'status-msg error'; return; }
+        renderMembers(res, q);
+      } catch (e) {
+        err.textContent = 'เชื่อมต่อไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่'; err.className = 'status-msg error';
+      } finally {
+        btn.disabled = false; btn.textContent = 'ค้นหา';
+      }
+    }
+
+    const MEMBER_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='46'%3E%3Crect width='46' height='46' fill='%23C8C8C8'/%3E%3C/svg%3E";
+
+    function renderMembers(res, q) {
+      const wrap = $('member-results');
+      if (!res.members.length) {
+        wrap.innerHTML = '<div class="member-empty">ไม่พบสมาชิกชื่อ “' + esc(q) + '”<br>ลองพิมพ์ชื่อสั้นลง หรือตรวจตัวสะกดอีกครั้ง</div>';
+        return;
+      }
+      wrap.innerHTML = res.members.map(function (m) {
+        const pic = /^https:\/\//.test(m.pictureUrl) ? m.pictureUrl : MEMBER_AVATAR;
+        return '<div class="member-card">' +
+          '<img class="member-pic" src="' + esc(pic) + '" alt="">' +
+          '<div class="member-info">' +
+            '<div class="member-name">' + esc(m.displayName) + '</div>' +
+            '<div class="member-meta">' +
+              esc(Number(m.tierPoints).toLocaleString()) + ' แต้มสะสม · แลกได้ ' + esc(Number(m.redeemable).toLocaleString()) + ' แต้ม<br>' +
+              (m.lastOrderId ? 'ออเดอร์ล่าสุด ' + esc(m.lastOrderId) + (m.lastOrderAt ? ' · ' + esc(m.lastOrderAt) : '') + '<br>' : '') +
+              'อัปเดต ' + esc(m.lastUpdated || '—') + ' · ' + esc(m.userIdMasked) +
+            '</div>' +
+          '</div>' +
+          '<div class="member-side">' +
+            '<div class="member-discount">' + esc(m.discountPct) + '<small>%</small></div>' +
+            '<div class="tier-badge ' + esc(m.tierKey) + '">' + esc(m.tier) + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('') +
+      (res.truncated ? '<div class="member-more">แสดง 20 รายชื่อแรก — พิมพ์ชื่อให้ยาวขึ้นเพื่อค้นให้แคบลง</div>' : '');
     }
 
     function bounceAuth() {

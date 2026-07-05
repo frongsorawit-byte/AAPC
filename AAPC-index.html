@@ -65,6 +65,48 @@
       --card-top-bg: #c4925a;
     }
 
+    /* ── Tier Identity (Full Tier Identity — ADR-016 design C) ──
+       accent ใช้บนพื้นหน้า (progress/guide) — มีเวอร์ชัน light/dark
+       ตัวแปร card (a/b/ink/sub/sheen) ไม่ผูกธีม = "บัตรจริงหน้าตาเดียว" ทั้ง 2 ธีม
+       ไม่มี data-tier บน body (โหลดไม่เสร็จ/error/Guest) → fallback หน้าตาเดิม 100% */
+    :root {
+      --tier-silver-accent:  #66727E;
+      --tier-gold-accent:    #A07E36;
+      --tier-diamond-accent: #3E5E80;
+    }
+    body.dark-theme {
+      --tier-silver-accent:  #A9B4BF;
+      --tier-gold-accent:    #D3AC5F;
+      --tier-diamond-accent: #8FB6D9;
+    }
+    body[data-tier="silver"] {
+      --tier-accent:     var(--tier-silver-accent);
+      --tier-card-a:     #464E58;
+      --tier-card-b:     #77828E;
+      --tier-card-ink:   #F2F4F6;
+      --tier-card-sub:   rgba(242, 244, 246, 0.62);
+      --tier-sheen:      rgba(255, 255, 255, 0.22);
+      --tier-emblem-ink: #DDE4EA;
+    }
+    body[data-tier="gold"] {
+      --tier-accent:     var(--tier-gold-accent);
+      --tier-card-a:     #6E5220;
+      --tier-card-b:     #AD853C;
+      --tier-card-ink:   #FBF4E4;
+      --tier-card-sub:   rgba(251, 244, 228, 0.62);
+      --tier-sheen:      rgba(255, 236, 190, 0.32);
+      --tier-emblem-ink: #F3DCA8;
+    }
+    body[data-tier="diamond"] {
+      --tier-accent:     var(--tier-diamond-accent);
+      --tier-card-a:     #0D1626;
+      --tier-card-b:     #27394F;
+      --tier-card-ink:   #EAF3FB;
+      --tier-card-sub:   rgba(234, 243, 251, 0.58);
+      --tier-sheen:      rgba(160, 215, 255, 0.22);
+      --tier-emblem-ink: #BFDCF5;
+    }
+
     body {
       font-family: 'Montserrat', sans-serif;
       font-weight: 300;
@@ -338,17 +380,84 @@
       margin-top: 4px;
     }
 
-    .tier-pill {
-      font-size: 11px;
+    /* tier emblem — ชื่อระดับตัวใหญ่แทน pill เดิม (id="tier-pill" คงไว้เพื่อ JS เดิม) */
+    .tier-emblem { text-align: right; flex-shrink: 0; align-self: center; }
+
+    .tier-emblem-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 400;
+      font-size: 30px;
+      line-height: 1;
+      color: var(--tier-emblem-ink, var(--caramel));
+    }
+
+    .tier-emblem-sub {
+      font-size: 8.5px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      background: var(--caramel);
-      color: var(--white);
-      padding: 4px 12px;
-      border-radius: 20px;
-      flex-shrink: 0;
-      align-self: flex-start;
+      letter-spacing: 0.24em;
+      color: var(--tier-card-sub, var(--grey-400));
+      margin-top: 4px;
+    }
+
+    .card-benefit-line {
+      margin-top: 18px;
+      padding-top: 13px;
+      border-top: 1px solid rgba(255, 255, 255, 0.16);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-align: center;
+      color: var(--tier-emblem-ink, var(--caramel-lt));
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Tier card skin — gradient + sheen + texture (ทำงานเมื่อ body มี data-tier เท่านั้น) ── */
+    body[data-tier] .card-top {
+      background: linear-gradient(135deg, var(--tier-card-a) 0%, var(--tier-card-b) 100%);
+    }
+    body[data-tier] .card-top::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(105deg, transparent 42%, var(--tier-sheen) 50%, transparent 58%),
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 7px);
+      background-size: 250% 100%, auto;
+      animation: cardSheen 7s var(--ease) infinite;
+    }
+    @keyframes cardSheen {
+      0%, 55% { background-position: 130% 0; }
+      100%    { background-position: -60% 0; }
+    }
+    body[data-tier] .profile-name { color: var(--tier-card-ink); }
+    body[data-tier] .card-top-label,
+    body[data-tier] .profile-sub { color: var(--tier-card-sub); }
+    body[data-tier] .progress-fill { background: var(--tier-accent); }
+    body[data-tier] .tier-active .tier-name,
+    body[data-tier] .tier-active .tier-benefit { color: var(--tier-accent); }
+
+    /* ประกายเพชร — เฉพาะระดับเพชร */
+    .card-top .sparkle { display: none; }
+    body[data-tier="diamond"] .card-top .sparkle {
+      display: block;
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(200, 230, 255, 0.9);
+      box-shadow: 0 0 6px 1px rgba(160, 215, 255, 0.7);
+      animation: twinkle 3.6s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0; transform: scale(0.6); }
+      50%      { opacity: 1; transform: scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body[data-tier] .card-top::after, .card-top .sparkle { animation: none !important; }
     }
 
     .card-bottom { padding: 24px; }
@@ -1136,8 +1245,16 @@
               <div class="profile-name" id="user-name">—</div>
               <div class="profile-sub" id="user-sub">กำลังโหลด...</div>
             </div>
-            <div class="tier-pill" id="tier-pill">—</div>
+            <div class="tier-emblem">
+              <div class="tier-emblem-name" id="tier-pill">—</div>
+              <div class="tier-emblem-sub" id="tier-emblem-sub"></div>
+            </div>
           </div>
+          <div class="card-benefit-line" id="card-benefit-line" style="display:none">—</div>
+          <span class="sparkle" style="top:18%;left:10%;animation-delay:0s"></span>
+          <span class="sparkle" style="top:64%;left:28%;animation-delay:1.2s"></span>
+          <span class="sparkle" style="top:26%;left:60%;animation-delay:2.1s"></span>
+          <span class="sparkle" style="top:70%;left:85%;animation-delay:0.7s"></span>
         </div>
         <div class="card-bottom">
           <div class="points-label">Tier Points</div>
@@ -1365,15 +1482,15 @@
         <div>
           <div class="info-row">
             <span class="info-key">เงิน — Silver</span>
-            <span class="info-val">ส่วนลด 5% · 0–499 คะแนน</span>
+            <span class="info-val" id="info-tier-silver">ส่วนลด 5% · 0–499 คะแนน</span>
           </div>
           <div class="info-row">
             <span class="info-key">ทอง — Gold</span>
-            <span class="info-val">ส่วนลด 10% · 500–999 คะแนน</span>
+            <span class="info-val" id="info-tier-gold">ส่วนลด 10% · 500–999 คะแนน</span>
           </div>
           <div class="info-row">
             <span class="info-key">เพชร — Diamond</span>
-            <span class="info-val">ส่วนลด 20% · 1,000+ คะแนน</span>
+            <span class="info-val" id="info-tier-diamond">ส่วนลด 20% · 1,000+ คะแนน</span>
           </div>
         </div>
         <p class="note-text">ส่วนลดประจำระดับใช้กับทุกคำสั่งซื้อผ่าน LINE</p>
@@ -1645,10 +1762,27 @@
 
     // ── Dashboard ───────────────────────────────────────────────
     // DEV preview data — so the redeem UI is visible on localhost (real userId returns 0)
-    const DEV_GAS_PROFILE = { points: 540, redeemable: 180, tier: 'ทอง', nextTierName: 'เพชร', pointsToNext: 460, displayName: 'Dev Test' };
+    // ดูการ์ดแต่ละระดับ: http://localhost:8000/AAPC-index.html?tier=silver|gold|diamond
+    const DEV_TIER_TABLE = [
+      { key: 'silver',  name: 'เงิน', nameEn: 'Silver',  min: 0,    max: 499,  discountPct: 5  },
+      { key: 'gold',    name: 'ทอง',  nameEn: 'Gold',    min: 500,  max: 999,  discountPct: 10 },
+      { key: 'diamond', name: 'เพชร', nameEn: 'Diamond', min: 1000, max: null, discountPct: 20 },
+    ];
+    const DEV_TIER_PRESETS = {
+      silver:  { points: 250,  redeemable: 80,  tier: 'เงิน', tierKey: 'silver',  discountPct: 5,  nextTierName: 'ทอง',  pointsToNext: 250, displayName: 'Dev Test', tierTable: DEV_TIER_TABLE },
+      gold:    { points: 540,  redeemable: 180, tier: 'ทอง',  tierKey: 'gold',    discountPct: 10, nextTierName: 'เพชร', pointsToNext: 460, displayName: 'Dev Test', tierTable: DEV_TIER_TABLE },
+      diamond: { points: 1250, redeemable: 400, tier: 'เพชร', tierKey: 'diamond', discountPct: 20, nextTierName: null,   pointsToNext: 0,   displayName: 'Dev Test', tierTable: DEV_TIER_TABLE },
+    };
+    const DEV_TIER_OVERRIDE = new URLSearchParams(location.search).get('tier');
+    const DEV_GAS_PROFILE = DEV_TIER_PRESETS.gold;
 
     async function loadDashboard() {
       if (!state.profile) return;
+      if (DEV_MODE && DEV_TIER_PRESETS[DEV_TIER_OVERRIDE]) {
+        state.gasProfile = DEV_TIER_PRESETS[DEV_TIER_OVERRIDE];
+        renderDashboard(state.gasProfile);
+        return;
+      }
       try {
         let p = await API.getProfile(state.profile.userId);
         if (DEV_MODE && (!p || (!p.points && !p.redeemable))) p = DEV_GAS_PROFILE;
@@ -1660,20 +1794,44 @@
       }
     }
 
+    const TIER_KEY_MAP = { 'เงิน': 'silver', 'ทอง': 'gold', 'เพชร': 'diamond' };
+    const FALLBACK_DISCOUNT = { silver: 5, gold: 10, diamond: 20 }; // เผื่อ GAS deployment เก่าที่ยังไม่ส่ง discountPct
+
     function renderDashboard(p) {
-      const points = Number(p.points) || 0;
+      const points   = Number(p.points) || 0;
+      const tierKey  = p.tierKey || TIER_KEY_MAP[p.tier] || 'silver';
+      const discount = (p.discountPct != null) ? Number(p.discountPct) : FALLBACK_DISCOUNT[tierKey];
+
+      // สวมสกินระดับให้ทั้งหน้า — CSS อิง body[data-tier] (ไม่มี attr = หน้าตาเดิม)
+      document.body.dataset.tier = tierKey;
 
       document.getElementById('points-display').innerHTML =
         `<span class="points-value">${points.toLocaleString()}</span>` +
         `<span class="points-unit">คะแนน</span>`;
 
       document.getElementById('tier-pill').textContent = p.tier || 'เงิน';
+      document.getElementById('tier-emblem-sub').textContent = tierKey.toUpperCase() + ' MEMBER';
+
+      const benefitLine = document.getElementById('card-benefit-line');
+      benefitLine.textContent = `ส่วนลด ${discount}% ทุกออเดอร์`;
+      benefitLine.style.display = 'block';
+
+      // tier guide + INFO render จาก tierTable ของ API — ถ้าไม่มี (deployment เก่า) ใช้ข้อความ hardcode เดิมใน HTML
+      const tbl = (Array.isArray(p.tierTable) && p.tierTable.length) ? p.tierTable : null;
+      if (tbl) renderTierGuide(tbl);
 
       const progressSection = document.getElementById('progress-section');
       progressSection.style.display = 'block';
 
+      // progress % จาก tierTable ถ้ามี — fallback เกณฑ์เดิม 500/1000
       let pct;
-      if (p.tier === 'เพชร') {
+      const curIdx = tbl ? tbl.findIndex(t => t.key === tierKey) : -1;
+      if (tbl && curIdx >= 0) {
+        const cur = tbl[curIdx], next = tbl[curIdx + 1];
+        pct = next
+          ? Math.max(0, Math.min(100, Math.round(((points - cur.min) / (next.min - cur.min)) * 100)))
+          : 100;
+      } else if (p.tier === 'เพชร') {
         pct = 100;
       } else if (p.tier === 'ทอง') {
         pct = Math.min(100, Math.round(((points - 500) / 500) * 100));
@@ -1692,11 +1850,10 @@
         document.getElementById('progress-label').textContent = 'ระดับสูงสุด';
       }
 
-      const tierMap = { 'เงิน': 'silver', 'ทอง': 'gold', 'เพชร': 'diamond' };
       ['silver', 'gold', 'diamond'].forEach(t => {
         document.getElementById('guide-' + t).classList.remove('tier-active');
       });
-      const activeKey = tierMap[p.tier];
+      const activeKey = TIER_KEY_MAP[p.tier];
       if (activeKey) document.getElementById('guide-' + activeKey).classList.add('tier-active');
 
       // Redeemable callout on the member card
@@ -1707,6 +1864,21 @@
         document.getElementById('redeemable-value').textContent = redeemable.toLocaleString();
         document.getElementById('redeem-callout-btn').disabled = redeemable < 50;
       }
+    }
+
+    // อัปเดตข้อความส่วนลด/ช่วงแต้มใน tier guide + INFO tab จาก TIER_CONFIG ฝั่ง GAS (ADR-015)
+    function renderTierGuide(tierTable) {
+      tierTable.forEach(t => {
+        const min = Number(t.min).toLocaleString();
+        const max = t.max != null ? Number(t.max).toLocaleString() : null;
+        const row = document.getElementById('guide-' + t.key);
+        if (row) {
+          row.querySelector('.tier-benefit').textContent = `ส่วนลด ${t.discountPct}%`;
+          row.querySelector('.tier-range').textContent = max != null ? `${min} – ${max} คะแนน` : `${min}+ คะแนน`;
+        }
+        const info = document.getElementById('info-tier-' + t.key);
+        if (info) info.textContent = `ส่วนลด ${t.discountPct}% · ${max != null ? min + '–' + max : min + '+'} คะแนน`;
+      });
     }
 
     function renderDashboardError(err) {
