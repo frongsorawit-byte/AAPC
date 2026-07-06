@@ -491,7 +491,7 @@
       btn.disabled = true; btn.textContent = 'กำลังตรวจ...';
       try {
         const res = await API.lookup(code);
-        if (res.status === 'error' && res.code === 'auth') { bounceAuth(); return; }
+        if (res.status === 'error' && res.code === 'auth') { bounceAuth(err); return; }
         if (res.status === 'notfound') { err.textContent = 'ไม่พบคูปองนี้ในระบบ'; err.className = 'status-msg error'; return; }
         if (res.status !== 'ok')       { err.textContent = res.message || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'; err.className = 'status-msg error'; return; }
         renderResult(res.coupon);
@@ -559,7 +559,7 @@
           $('btn-next').style.display = 'block';
           $('r-pill').textContent = 'ใช้ไปแล้ว'; $('r-pill').className = 'status-pill pill-used';
         } else if (res.code === 'auth') {
-          bounceAuth();
+          bounceAuth(msg);
         } else if (res.code === 'used') {
           $('confirm-box').style.display = 'none';
           msg.innerHTML = 'คูปองนี้เพิ่งถูกใช้ไปแล้ว' +
@@ -608,7 +608,7 @@
       btn.disabled = true; btn.textContent = 'กำลังค้นหา...';
       try {
         const res = await API.memberSearch(q);
-        if (res.status === 'error' && res.code === 'auth') { bounceAuth(); return; }
+        if (res.status === 'error' && res.code === 'auth') { bounceAuth(err); return; }
         if (res.status === 'error' && res.code === 'shortquery') { err.textContent = 'กรุณากรอกชื่ออย่างน้อย 2 ตัวอักษร'; err.className = 'status-msg error'; return; }
         if (res.status !== 'ok') { err.textContent = res.message || 'เกิดข้อผิดพลาด ลองใหม่อีกครั้ง'; err.className = 'status-msg error'; return; }
         renderMembers(res, q);
@@ -648,13 +648,16 @@
       (res.truncated ? '<div class="member-more">แสดง 20 รายชื่อแรก — พิมพ์ชื่อให้ยาวขึ้นเพื่อค้นให้แคบลง</div>' : '');
     }
 
-    function bounceAuth() {
-      localStorage.removeItem(LS_PWD);
-      showLogin();
-      const err = $('login-err');
-      err.textContent = 'รหัสร่วมไม่ถูกต้อง กรุณากรอกใหม่';
-      err.className = 'status-msg error';
-      $('in-name').value = adminName();
+    // จำรหัสถาวร (บอสขอ 2026-07-06): ไม่ลบ LS_PWD และไม่เด้งกลับหน้า login
+    // เมื่อ API คืน code:'auth' (มักเป็น error ชั่วคราว) — แสดง error inline ตรงแท็บที่ใช้อยู่ ให้ retry ได้เลย
+    // ถ้ารหัสถูกเปลี่ยนจริง ให้กดปุ่ม "ออกจากระบบ" (logout) เพื่อใส่รหัสใหม่
+    function bounceAuth(statusEl) {
+      const err = statusEl || $('lookup-err');
+      if (err) {
+        err.textContent = 'รหัสไม่ถูกต้องหรือหมดอายุ — ถ้าเปลี่ยนรหัสแล้วให้กด “ออกจากระบบ” เพื่อใส่รหัสใหม่';
+        err.className = 'status-msg error';
+        err.style.display = '';
+      }
     }
 
     function esc(s) {

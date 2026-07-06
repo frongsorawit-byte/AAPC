@@ -135,43 +135,157 @@
       transition: background-color 0.5s var(--ease), color 0.5s var(--ease), border-color 0.5s var(--ease);
     }
 
-    /* ── Loading Screen ── */
+    /* ── Loading Screen (branded boot splash) ── */
     #loading-screen {
       position: fixed;
       inset: 0;
-      background: var(--parchment);
+      background: radial-gradient(120% 90% at 50% 42%, #16130F 0%, #0A0A0A 60%);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      isolation: isolate;
+      z-index: 9999;
+    }
+    #loading-screen .ls-aura {
+      position: absolute;
+      width: min(70vw, 340px);
+      aspect-ratio: 1;
+      left: 50%;
+      top: 50%;
+      translate: -50% -46%;
+      background: radial-gradient(circle, rgba(184,131,78,0.22) 0%, rgba(184,131,78,0) 68%);
+      filter: blur(6px);
+      animation: ls-breathe 3.6s ease-in-out infinite;
+    }
+    #loading-screen .ls-stack {
+      position: relative;
+      z-index: 2;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 20px;
-      z-index: 9999;
+      gap: 34px;
+      padding: 0 24px;
+      text-align: center;
+    }
+    #loading-screen .ls-brand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      animation: ls-rise 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
     }
     .loader-wordmark {
       font-family: 'Cormorant Garamond', serif;
-      font-weight: 300;
-      font-size: 28px;
-      letter-spacing: 0.22em;
-      color: var(--black);
+      font-weight: 400;
+      font-size: clamp(38px, 12vw, 50px);
+      letter-spacing: 0.32em;
+      text-indent: 0.32em;            /* re-center against trailing letter-spacing */
+      line-height: 1;
+      color: #F3EAD9;
     }
-    .loader-bar {
-      width: 48px;
+    #loading-screen .ls-sub {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 500;
+      font-size: 11px;
+      letter-spacing: 0.42em;
+      text-indent: 0.42em;
+      text-transform: uppercase;
+      color: #B8834E;
+    }
+    #loading-screen .ls-hairline {
+      width: 44px;
       height: 1px;
-      background: var(--grey-200);
-      position: relative;
-      overflow: hidden;
+      background: linear-gradient(90deg, transparent, #B8834E, transparent);
+      opacity: 0.7;
     }
-    .loader-bar::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: var(--black);
-      animation: slide 1.2s var(--ease) infinite;
+    #loading-screen .ls-glyphs {
+      display: flex;
+      align-items: center;
+      gap: clamp(16px, 6vw, 26px);
     }
-    @keyframes slide { to { left: 100%; } }
+    #loading-screen .ls-g {
+      display: inline-flex;
+      width: 1.4em;
+      height: 1.4em;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(26px, 8vw, 34px);
+      color: #6E6152;
+      /* traveling highlight wave — left → right, like the LINE 5-dot rhythm */
+      animation: ls-wave 1.9s ease-in-out infinite;
+      animation-delay: calc(var(--i) * 0.15s);
+      will-change: transform, color, opacity;
+    }
+    #loading-screen .ls-g i {
+      /* spin composes with the wave scale on the outer .ls-g */
+      font-style: normal;
+      display: block;
+      line-height: 1;
+      animation: ls-spin 4.2s linear infinite;
+      animation-delay: calc(var(--i) * -0.6s);
+    }
+    #loading-screen .ls-g.center { color: #B8834E; }   /* Home ◈ = anchor */
+    #loading-screen .ls-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 400;
+      font-size: 12.5px;
+      letter-spacing: 0.06em;
+      color: #6E6152;
+      animation: ls-rise 1100ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      animation-delay: 220ms;
+    }
+    #loading-screen .ls-status .ls-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #B8834E;
+      animation: ls-blink 1.9s ease-in-out infinite;
+    }
+    @keyframes ls-spin { to { transform: rotate(360deg); } }
+    @keyframes ls-wave {
+      0%, 55%, 100% { color: #6E6152; transform: scale(0.94); opacity: 0.42; }
+      22%           { color: #D8B48E; transform: scale(1.16); opacity: 1;
+                      text-shadow: 0 0 14px rgba(216,180,142,0.55); }
+    }
+    @keyframes ls-breathe {
+      0%, 100% { opacity: 0.55; transform: scale(0.94); }
+      50%      { opacity: 1;    transform: scale(1.06); }
+    }
+    @keyframes ls-rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ls-blink { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+    /* branded reconnect strip — compact spinning glyphs; stays a non-blocking bar */
+    #reconnect-banner .rc-glyphs {
+      display: inline-flex;
+      gap: 7px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    #reconnect-banner .rc-glyphs i {
+      font-style: normal;
+      display: inline-block;
+      line-height: 1;
+      animation: ls-spin 3.2s linear infinite;
+    }
+    #reconnect-banner .rc-glyphs i:nth-child(2) { animation-delay: -1.1s; }
+    #reconnect-banner .rc-glyphs i:nth-child(3) { animation-delay: -2.1s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      #loading-screen .ls-aura,
+      #loading-screen .ls-g,
+      #loading-screen .ls-g i,
+      #loading-screen .ls-status .ls-dot,
+      #loading-screen .ls-brand,
+      #loading-screen .ls-status,
+      #reconnect-banner .rc-glyphs i { animation: none; }
+      #loading-screen .ls-g { color: #B8834E; opacity: 1; transform: none; }
+    }
 
     /* ── Mobile Container ── */
     #app-container {
@@ -1209,10 +1323,27 @@
 
 <body>
 
-  <!-- Loading Screen -->
+  <!-- Loading Screen (branded boot splash) -->
   <div id="loading-screen">
-    <div class="loader-wordmark">ATIPA</div>
-    <div class="loader-bar"></div>
+    <div class="ls-aura"></div>
+    <div class="ls-stack">
+      <div class="ls-brand">
+        <div class="loader-wordmark">ATIPA</div>
+        <div class="ls-hairline"></div>
+        <div class="ls-sub">Member Card</div>
+      </div>
+      <div class="ls-glyphs" role="img" aria-label="กำลังโหลด">
+        <span class="ls-g"        style="--i:0"><i>&#10022;</i></span>
+        <span class="ls-g"        style="--i:1"><i>&#10070;</i></span>
+        <span class="ls-g center" style="--i:2"><i>&#9672;</i></span>
+        <span class="ls-g"        style="--i:3"><i>&#9678;</i></span>
+        <span class="ls-g"        style="--i:4"><i>&#9675;</i></span>
+      </div>
+      <div class="ls-status">
+        <span class="ls-dot"></span>
+        <span>กำลังเชื่อมต่อ LINE…</span>
+      </div>
+    </div>
   </div>
 
   <!-- App Container -->
@@ -1223,6 +1354,7 @@
 
     <!-- Reconnect banner (shown when LIFF can't reach LINE, e.g. after camera) -->
     <div id="reconnect-banner" style="display:none;background:var(--pending-bg);color:var(--pending-text);font-size:13px;text-align:center;padding:10px 16px;">
+      <span class="rc-glyphs" aria-hidden="true"><i>&#10022;</i><i>&#9672;</i><i>&#9675;</i></span>
       <span id="reconnect-text">กำลังเชื่อมต่อ LINE อีกครั้ง…</span>
       <button id="reconnect-btn" style="display:none;margin-left:8px;border:1px solid currentColor;background:transparent;color:inherit;border-radius:6px;padding:2px 10px;font-size:12px;cursor:pointer;">เชื่อมต่อใหม่</button>
     </div>
@@ -1738,11 +1870,16 @@
     }
 
     function loadSavedTheme() {
+      // dark-first (บอสขอ 2026-07-06): ครั้งแรก (ยังไม่เคยเลือก) = dark
+      // เฉพาะเมื่อผู้ใช้เลือก 'light' ชัดเจนถึงเป็น light — toggleTheme จำค่าที่เลือกให้เอง
       try {
-        if (localStorage.getItem('atipa-theme') === 'dark') {
+        const saved = localStorage.getItem('atipa-theme');
+        if (saved === 'dark' || saved === null) {
           document.body.classList.add('dark-theme');
         }
-      } catch (_) {}
+      } catch (_) {
+        document.body.classList.add('dark-theme');
+      }
     }
 
     // ── Tab Navigation ──────────────────────────────────────────
