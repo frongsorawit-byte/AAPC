@@ -296,6 +296,21 @@
     .promo-actions { display: flex; flex-direction: column; gap: 6px; }
     .promo-act-btn { font-family: inherit; font-size: 11px; padding: 5px 10px; border-radius: 3px; cursor: pointer; border: 1px solid var(--grey-200); background: var(--white); color: var(--grey-600); }
     .promo-act-btn.del { color: var(--error-text); border-color: var(--error-bg); }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--grey-800); cursor: pointer; }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--caramel); cursor: pointer; }
+    .channel-grid { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 2px 0; }
+    .channel-chip { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--grey-800); cursor: pointer; }
+    .channel-chip input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--caramel); cursor: pointer; }
+    .sku-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .sku-row .text-input { flex: 1; text-transform: uppercase; }
+    .sku-row-remove {
+      flex-shrink: 0; width: 44px; height: 48px;
+      border: 1px solid var(--grey-200); border-radius: 4px; background: var(--white);
+      color: var(--error-text); cursor: pointer; font-size: 18px; font-family: inherit;
+    }
+    .promo-scope-summary { font-size: 12px; line-height: 1.6; color: var(--grey-600); background: var(--grey-50); border-radius: 4px; padding: 10px 12px; margin-bottom: 14px; }
+    .promo-scope-summary b { color: var(--black); }
+    .promo-scope-summary.warn { background: var(--pending-bg); color: var(--pending-text); }
 
     /* ── Member result card ── */
     .member-card {
@@ -448,27 +463,39 @@
           </div>
           <div class="field-row">
             <div class="field">
-              <label class="input-label" for="promo-start">วันเริ่ม</label>
-              <input class="text-input" id="promo-start" type="date">
+              <label class="input-label" for="promo-start">วันเริ่ม-เวลา</label>
+              <input class="text-input" id="promo-start" type="datetime-local" onchange="updateScopeSummary()">
             </div>
             <div class="field">
-              <label class="input-label" for="promo-end">วันจบ</label>
-              <input class="text-input" id="promo-end" type="date">
+              <label class="input-label" for="promo-end">วันจบ-เวลา</label>
+              <input class="text-input" id="promo-end" type="datetime-local" onchange="updateScopeSummary()">
             </div>
           </div>
+          <div class="hint" style="text-align:left;margin-top:-8px;margin-bottom:16px">เว้นวันจบว่าง = ไม่มีวันหมด (โปรฯ ถาวร)</div>
           <div class="field">
             <label class="input-label">ตัวคูณคะแนน</label>
             <div class="mult-row">
               <button type="button" class="mult-btn" id="mult-2" onclick="setMult(2)">×2</button>
               <button type="button" class="mult-btn" id="mult-3" onclick="setMult(3)">×3</button>
-              <input class="text-input mult-input" id="promo-mult" type="number" min="1" max="10" step="1" value="2" oninput="syncMultButtons()">
+              <input class="text-input mult-input" id="promo-mult" type="number" min="1" max="5" step="1" value="2" oninput="syncMultButtons(); updateScopeSummary()">
             </div>
           </div>
           <div class="field">
-            <label class="input-label" for="promo-platform">ช่องทาง</label>
-            <select class="text-input" id="promo-platform"><option value="">ทุกช่องทาง</option></select>
-            <div class="hint" id="promo-platform-hint" style="text-align:left">แนะนำ “ทุกช่องทาง” สำหรับไลฟ์ — จับทุกออเดอร์ในช่วงเวลา</div>
+            <label class="checkbox-row" for="promo-sku-toggle">
+              <input type="checkbox" id="promo-sku-toggle" onchange="toggleSkuLimit()"> จำกัดเฉพาะรุ่นสินค้า
+            </label>
+            <div id="promo-sku-box" style="display:none;margin-top:10px">
+              <div id="promo-sku-list"></div>
+              <button type="button" class="btn-ghost" style="margin-top:0" onclick="addSkuRow('')">+ เพิ่มรุ่น</button>
+            </div>
+            <div class="hint" style="text-align:left">ว่าง = ทุกสินค้า · กรอกรหัสรุ่น เช่น ATP-00270 (ครอบทุก variant อัตโนมัติ)</div>
           </div>
+          <div class="field">
+            <label class="input-label">ช่องทาง (ติ๊กได้หลายอัน)</label>
+            <div class="channel-grid" id="promo-channel-list"></div>
+            <div class="hint" style="text-align:left">ไม่ติ๊กเลย = ทุกช่องทาง — แนะนำสำหรับไลฟ์ที่ไม่แน่ใจช่องทางลูกค้า</div>
+          </div>
+          <div class="promo-scope-summary" id="promo-scope-summary"></div>
           <input type="hidden" id="promo-id" value="">
           <button class="btn-primary" id="btn-promo-save" onclick="savePromo()">บันทึกโปรโมชั่น</button>
           <button class="btn-ghost" id="btn-promo-cancel" onclick="resetPromoForm()" style="display:none">ยกเลิกการแก้ไข</button>
@@ -743,6 +770,9 @@
     let campaignsCache = [];
     let platformsCache = [];
 
+    const CHANNEL_LABELS = { TIKTOK: 'TikTok', ATIPASHOP: 'LINE', 'ATIPASHOP.SG': 'Atipashop SG', SHOPEE: 'Shopee' };
+    function friendlyChannel(raw) { return CHANNEL_LABELS[String(raw).toUpperCase()] || raw; }
+
     async function loadCampaigns() {
       const list = $('promo-list');
       list.innerHTML = '<div class="hint">กำลังโหลด…</div>';
@@ -753,9 +783,10 @@
         campaignsCache = res.campaigns || [];
         platformsCache = res.platformsSeen || [];
         renderCalcExplain(res.baseRate || 200);
-        populatePlatforms(platformsCache, $('promo-platform').value);
+        populateChannels(platformsCache, getSelectedChannels());
         if (res.maxMultiplier) $('promo-mult').max = res.maxMultiplier;
         syncMultButtons();
+        updateScopeSummary();
         renderCampaigns(campaignsCache);
       } catch (e) {
         list.innerHTML = '<div class="hint">เชื่อมต่อไม่สำเร็จ</div>';
@@ -765,18 +796,66 @@
     function renderCalcExplain(baseRate) {
       $('calc-explain').innerHTML =
         '<div>ทุก <span class="ce-formula">' + baseRate + ' บาท = 1 คะแนน</span></div>' +
-        '<div>× <span class="ce-mult">ตัวคูณโปรโมชั่น</span> ที่ตรงช่วงเวลา + ช่องทาง</div>' +
+        '<div>× <span class="ce-mult">ตัวคูณโปรโมชั่น</span> ที่ตรงช่วงวัน-เวลา + ช่องทาง + รุ่นสินค้า (ถ้ากำหนด)</div>' +
         '<div style="font-size:12px;color:var(--grey-400);margin-top:4px">มีหลายโปรฯ พร้อมกัน → ใช้ตัวคูณสูงสุด (ไม่บวกกัน)</div>' +
         '<div class="ce-eg">ตัวอย่าง: ออเดอร์ 1,000฿ ช่วงโปรฯ ×2<br>= (1,000 ÷ ' + baseRate + ') × 2 = <b>10 คะแนน</b></div>';
     }
 
-    function populatePlatforms(platforms, selected) {
-      let html = '<option value="">ทุกช่องทาง</option>';
-      (platforms || []).forEach(function (p) {
-        html += '<option value="' + esc(p) + '"' + (p === selected ? ' selected' : '') + '>' + esc(p) + '</option>';
-      });
-      $('promo-platform').innerHTML = html;
-      if (selected) $('promo-platform').value = selected;
+    // ── Channel checkboxes (multi-select) ──
+    function populateChannels(platforms, selected) {
+      const selSet = new Set(selected || []);
+      const box = $('promo-channel-list');
+      box.innerHTML = (platforms || []).map(function (p) {
+        const checked = selSet.has(p) ? ' checked' : '';
+        return '<label class="channel-chip"><input type="checkbox" value="' + esc(p) + '"' + checked + ' onchange="updateScopeSummary()"> ' + esc(friendlyChannel(p)) + '</label>';
+      }).join('');
+    }
+    function getSelectedChannels() {
+      return Array.from($('promo-channel-list').querySelectorAll('input[type=checkbox]:checked')).map(function (el) { return el.value; });
+    }
+
+    // ── Family SKU rows (repeatable) ──
+    function addSkuRow(value) {
+      const wrap = document.createElement('div');
+      wrap.className = 'sku-row';
+      wrap.innerHTML = '<input class="text-input" type="text" placeholder="เช่น ATP-00270" value="' + esc(value || '') + '" oninput="updateScopeSummary()">' +
+        '<button type="button" class="sku-row-remove" onclick="removeSkuRow(this)">×</button>';
+      $('promo-sku-list').appendChild(wrap);
+    }
+    function removeSkuRow(btn) { btn.parentElement.remove(); updateScopeSummary(); }
+    function getSkuValues() {
+      return Array.from($('promo-sku-list').querySelectorAll('input[type=text]'))
+        .map(function (el) { return el.value.trim().toUpperCase(); })
+        .filter(Boolean);
+    }
+    function toggleSkuLimit() {
+      const on = $('promo-sku-toggle').checked;
+      $('promo-sku-box').style.display = on ? 'block' : 'none';
+      if (on && !$('promo-sku-list').children.length) addSkuRow('');
+      updateScopeSummary();
+    }
+
+    // ── Scope summary (กันตั้งพลาด "แจกทั้งโลก") ──
+    function fmtDT(v) {
+      const m = String(v || '').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+      return m ? (m[3] + '/' + m[2] + ' ' + m[4] + ':' + m[5]) : '';
+    }
+    function updateScopeSummary() {
+      const mult = Number($('promo-mult').value) || 1;
+      const channels = getSelectedChannels();
+      const skus = $('promo-sku-toggle').checked ? getSkuValues() : [];
+      const start = $('promo-start').value;
+      const end = $('promo-end').value;
+
+      const chanText = channels.length ? channels.map(friendlyChannel).join(' + ') : 'ทุกช่องทาง';
+      const skuText = skus.length ? ('รุ่น ' + skus.join(', ')) : 'ทุกสินค้า';
+      const timeText = start ? (fmtDT(start) + (end ? (' – ' + fmtDT(end)) : ' ไม่มีวันหมด')) : 'ยังไม่ระบุช่วงเวลา';
+      const isWide = !channels.length && !skus.length && !end;
+
+      const el = $('promo-scope-summary');
+      el.innerHTML = '<b>โปรฯ นี้:</b> ×' + mult + ' · ' + esc(chanText) + ' · ' + esc(skuText) + ' · ' + esc(timeText) +
+        (isWide ? '<br>⚠️ กว้างสุด — แจกทุกช่องทาง ทุกสินค้า ไม่มีวันหมด' : '');
+      el.className = 'promo-scope-summary' + (isWide ? ' warn' : '');
     }
 
     function renderCampaigns(list) {
@@ -784,11 +863,12 @@
       if (!list.length) { box.innerHTML = '<div class="hint">ยังไม่มีโปรโมชั่น — เพิ่มด้านบน</div>'; return; }
       const labels = { active: 'กำลังใช้', upcoming: 'กำลังจะเริ่ม', expired: 'หมดอายุ' };
       box.innerHTML = list.map(function (c) {
-        const chan = c.platform ? esc(c.platform) : 'ทุกช่องทาง';
+        const chan = (c.platforms && c.platforms.length) ? c.platforms.map(friendlyChannel).join(' + ') : 'ทุกช่องทาง';
+        const skuText = (c.skus && c.skus.length) ? (' · รุ่น ' + esc(c.skus.join(', '))) : '';
         return '<div class="promo-item">' +
           '<div class="promo-main">' +
             '<div class="promo-title"><span class="promo-mult-tag">×' + esc(c.multiplier) + '</span>' + esc(c.note || 'ไม่มีชื่อ') + '</div>' +
-            '<div class="promo-meta">' + esc(c.startDate) + ' – ' + esc(c.endDate) + ' · ' + chan +
+            '<div class="promo-meta">' + esc(c.startDate) + ' – ' + esc(c.endDate) + ' · ' + esc(chan) + skuText +
               ' <span class="promo-badge ' + esc(c.status) + '">' + (labels[c.status] || esc(c.status)) + '</span></div>' +
           '</div>' +
           '<div class="promo-actions">' +
@@ -799,7 +879,7 @@
       }).join('');
     }
 
-    function setMult(n) { $('promo-mult').value = n; syncMultButtons(); }
+    function setMult(n) { $('promo-mult').value = n; syncMultButtons(); updateScopeSummary(); }
     function syncMultButtons() {
       const v = Number($('promo-mult').value);
       $('mult-2').className = 'mult-btn' + (v === 2 ? ' active' : '');
@@ -810,18 +890,19 @@
       const msg = $('promo-msg');
       msg.style.display = 'none';
       const note  = $('promo-note').value.trim();
-      const start = $('promo-start').value;   // yyyy-MM-dd (native date input)
-      const end   = $('promo-end').value;
+      const start = $('promo-start').value;   // yyyy-MM-ddTHH:mm (datetime-local)
+      const end   = $('promo-end').value;     // '' = ไม่มีวันหมด
       const mult  = Number($('promo-mult').value);
-      const platform = $('promo-platform').value;
+      const platform = getSelectedChannels().join(',');
+      const skus = ($('promo-sku-toggle').checked ? getSkuValues() : []).join(',');
       const id = $('promo-id').value;
-      if (!start || !end) { msg.textContent = 'กรุณาเลือกวันเริ่มและวันจบ'; msg.className = 'status-msg error'; return; }
-      if (!(mult >= 1))   { msg.textContent = 'ตัวคูณไม่ถูกต้อง';           msg.className = 'status-msg error'; return; }
+      if (!start)       { msg.textContent = 'กรุณาเลือกวันเริ่ม';   msg.className = 'status-msg error'; return; }
+      if (!(mult >= 1)) { msg.textContent = 'ตัวคูณไม่ถูกต้อง';      msg.className = 'status-msg error'; return; }
 
       const btn = $('btn-promo-save');
       btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
       try {
-        const res = await API.saveCampaign({ id: id || undefined, multiplier: mult, platform, startDate: start, endDate: end, note });
+        const res = await API.saveCampaign({ id: id || undefined, multiplier: mult, platform, skus, startDate: start, endDate: end, note });
         if (res.status === 'error' && res.code === 'auth') { bounceAuth(msg); return; }
         if (res.status !== 'ok') { msg.textContent = res.message || 'บันทึกไม่สำเร็จ'; msg.className = 'status-msg error'; return; }
         msg.textContent = id ? 'แก้ไขโปรโมชั่นแล้ว ✓' : 'เพิ่มโปรโมชั่นแล้ว ✓'; msg.className = 'status-msg success';
@@ -839,11 +920,17 @@
       if (!c) return;
       $('promo-id').value    = c.id;
       $('promo-note').value  = c.note || '';
-      $('promo-start').value = c.startDate;
-      $('promo-end').value   = c.endDate;
+      $('promo-start').value = c.startDateForInput || '';
+      $('promo-end').value   = c.endDateForInput || '';
       $('promo-mult').value  = c.multiplier;
-      populatePlatforms(platformsCache, c.platform || '');
+      populateChannels(platformsCache, c.platforms || []);
+      const skus = c.skus || [];
+      $('promo-sku-list').innerHTML = '';
+      $('promo-sku-toggle').checked = skus.length > 0;
+      $('promo-sku-box').style.display = skus.length ? 'block' : 'none';
+      skus.forEach(function (s) { addSkuRow(s); });
       syncMultButtons();
+      updateScopeSummary();
       $('promo-form-title').textContent = 'แก้ไขโปรโมชั่น';
       $('btn-promo-save').textContent   = 'บันทึกการแก้ไข';
       $('btn-promo-cancel').style.display = 'block';
@@ -871,8 +958,12 @@
       $('promo-start').value = '';
       $('promo-end').value = '';
       $('promo-mult').value = 2;
-      $('promo-platform').value = '';
+      $('promo-sku-toggle').checked = false;
+      $('promo-sku-list').innerHTML = '';
+      $('promo-sku-box').style.display = 'none';
+      populateChannels(platformsCache, []);
       syncMultButtons();
+      updateScopeSummary();
       $('promo-form-title').textContent = 'เพิ่มโปรโมชั่น';
       $('btn-promo-save').textContent = 'บันทึกโปรโมชั่น';
       $('btn-promo-cancel').style.display = 'none';
