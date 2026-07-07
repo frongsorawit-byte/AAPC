@@ -5,7 +5,7 @@
  * doPost → receive LIFF submission → save to Data_Log + upsert Points_Master
  *
  * Scheduled (via installTriggers):
- *   runDailyBatch()    — daily 00:00, match Data_Log ↔ Order_Verification
+ *   runDailyBatch()    — daily 17:00, match Data_Log ↔ Order_Verification
  *                        award/reject/clawback, send LINE push
  *   cleanOldOrders()   — Sunday 02:00, delete Order_Verification rows > 60 days
  *
@@ -72,9 +72,9 @@ const OV = {
 };
 const OV_HEADERS = ['OrderID','TrackingNo','JST_ID','Value','SKUs','Platform','OrderDate','Status','ProcessedAt'];
 
-// Config_Points columns
-const CFG = { SKU_KEYWORD: 0, PLATFORM: 1, MULTIPLIER: 2, FLAT_BONUS: 3, START_DATE: 4, END_DATE: 5, NOTE: 6 };
-const CFG_HEADERS = ['SKU_Keyword','Platform','Multiplier','FlatBonus','StartDate','EndDate','Note'];
+// Config_Points columns  (CampaignId = col ต่อท้าย, ไว้ให้ Admin Promotion Manager อ้างอิงแก้/ลบ — loadConfigPoints อ่าน 0-6 เท่าเดิม)
+const CFG = { SKU_KEYWORD: 0, PLATFORM: 1, MULTIPLIER: 2, FLAT_BONUS: 3, START_DATE: 4, END_DATE: 5, NOTE: 6, CAMPAIGN_ID: 7 };
+const CFG_HEADERS = ['SKU_Keyword','Platform','Multiplier','FlatBonus','StartDate','EndDate','Note','CampaignId'];
 
 // Batch_Log columns
 const BL = { RUN_AT: 0, TYPE: 1, ROWS_PROCESSED: 2, ROWS_AWARDED: 3, ROWS_FAILED: 4, ROWS_CLAWBACK: 5, STATUS: 6, ERROR: 7 };
@@ -82,6 +82,7 @@ const BL_HEADERS = ['RunAt','Type','RowsProcessed','RowsAwarded','RowsFailed','R
 
 // Constants
 const VERIFYING_TIMEOUT_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const RECHECK_WINDOW_DAYS  = 10; // re-check awarded orders for clawback within 10 days
 const ORDER_VERIFICATION_KEEP_DAYS = 60;
 const TIME_BUDGET_MS = 5 * 60 * 1000; // 5 min — leave 1 min buffer before GAS 6-min cap
 const LOCK_TIMEOUT_MS = 30 * 1000;    // 30 sec to acquire lock
@@ -90,7 +91,10 @@ const LOCK_TIMEOUT_MS = 30 * 1000;    // 30 sec to acquire lock
 const SHEET_REDEMPTIONS  = 'Redemptions';
 const SHEET_CONSENT      = 'Consent';
 const REDEEM_RATE        = 50;   // 50 points = ฿50 per coupon unit
-const COUPON_EXPIRY_DAYS = 30;
+const COUPON_EXPIRY_DAYS = 365;  // 1 year (was 30) — บอสขอ 2026-07-06
+const POINTS_BASE_RATE   = 200;  // ทุก 200฿ = 1 คะแนน (base) — source of truth ให้ calculatePoints + Admin explainer
+const CAMPAIGN_LIST_LIMIT     = 5;   // Admin โชว์โปรฯ ล่าสุดกี่รายการ
+const CAMPAIGN_MAX_MULTIPLIER = 5;   // cap ตัวคูณ กัน fat-finger/abuse — บอสยืนยันสูงสุดไม่เกิน 5 (2026-07-06)
 const CONSENT_VERSION    = '1.0';
 
 // Redemptions columns (0-based) — 12 cols. GAS auto-fills A–H; admin page fills I–L.
@@ -108,11 +112,37 @@ const RD_HEADERS = ['UserID','DisplayName','Code','Units','Value','RequestId','I
 const CN = { USER_ID: 0, DISPLAY_NAME: 1, VERSION: 2, CONSENTED_AT: 3 };
 const CN_HEADERS = ['UserID','DisplayName','ConsentVersion','ConsentedAt'];
 
+// ─── Tier Config — SINGLE SOURCE OF TRUTH (thresholds + discount %) ──────────
+// แก้ระดับ/เปอร์เซ็นต์ส่วนลดที่ array นี้ที่เดียว แล้ว redeploy — frontend ดึงผ่าน getProfile.tierTable
+const TIER_CONFIG = [
+  { key: 'silver',  name: 'เงิน', nameEn: 'Silver',  min: 0,    max: 499,  discountPct: 5  },
+  { key: 'gold',    name: 'ทอง',  nameEn: 'Gold',    min: 500,  max: 999,  discountPct: 10 },
+  { key: 'diamond', name: 'เพชร', nameEn: 'Diamond', min: 1000, max: null, discountPct: 20 },
+];
+
 // ─── Tier Computation ─────────────────────────────────────────────────────────
 function computeTier(points) {
-  if (points >= 1000) return { tier: 'เพชร', nextTier: null, pointsToNext: 0 };
-  if (points >= 500)  return { tier: 'ทอง',  nextTier: 'เพชร', pointsToNext: 1000 - points };
-  return                    { tier: 'เงิน',  nextTier: 'ทอง',  pointsToNext: 500 - points };
+  const p = Number(points) || 0;
+  let idx = 0;
+  for (let i = TIER_CONFIG.length - 1; i >= 0; i--) {
+    if (p >= TIER_CONFIG[i].min) { idx = i; break; }
+  }
+  const cur  = TIER_CONFIG[idx];
+  const next = TIER_CONFIG[idx + 1] || null;
+  return {
+    tier:         cur.name,
+    nextTier:     next ? next.name : null,
+    pointsToNext: next ? next.min - p : 0,
+    key:          cur.key,
+    nameEn:       cur.nameEn,
+    discountPct:  cur.discountPct,
+  };
+}
+
+function tierTablePublic() {
+  return TIER_CONFIG.map(function (t) {
+    return { key: t.key, name: t.name, nameEn: t.nameEn, min: t.min, max: t.max, discountPct: t.discountPct };
+  });
 }
 
 // ─── ID Normalization ─────────────────────────────────────────────────────────
@@ -261,17 +291,24 @@ function loadConfigPoints() {
 function isRuleActive(rule, orderDate) {
   if (!orderDate) return !rule.startDate && !rule.endDate; // no order date → only rules with no date constraint
   if (rule.startDate && orderDate < rule.startDate) return false;
-  if (rule.endDate) {
-    // EndDate is inclusive — add 1 day
-    const endExclusive = new Date(rule.endDate.getTime() + 24 * 60 * 60 * 1000);
-    if (orderDate >= endExclusive) return false;
-  }
+  if (rule.endDate && orderDate > rule.endDate) return false; // datetime ตรงๆ — end ว่าง = ไม่มีวันหมด
   return true;
+}
+
+// Re-interpret a Date read from a spreadsheet cell (GAS แปลง serial→Date โดยใช้ spreadsheet's timezone,
+// ไม่ใช่ script's timezone) ให้เป็น instant ที่ถูกต้องตาม Asia/Bangkok (ตรงกับที่ JSTerp export มาจริง).
+// ดึง spreadsheet timezone แบบ dynamic กัน sheet timezone เปลี่ยนอนาคตแล้วโค้ดพังเงียบ.
+function _toBangkok(d) {
+  if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+  const sheetTz = SpreadsheetApp.openById(AAPC_SHEET_ID).getSpreadsheetTimeZone();
+  const iso = Utilities.formatDate(d, sheetTz, "yyyy-MM-dd'T'HH:mm:ss");
+  const fixed = new Date(iso + '+07:00');
+  return isNaN(fixed.getTime()) ? null : fixed;
 }
 
 // ─── Points Formula (pure) ────────────────────────────────────────────────────
 function calculatePoints(orderValue, skus, platform, orderDate, configRules) {
-  const basePoints = Math.floor(Number(orderValue) / 200);
+  const basePoints = Math.floor(Number(orderValue) / POINTS_BASE_RATE);
   if (basePoints === 0) {
     return { points: 0, basePoints: 0, multiplier: 1, flat: 0, reason: 'มูลค่า < 200 บาท' };
   }
@@ -281,8 +318,12 @@ function calculatePoints(orderValue, skus, platform, orderDate, configRules) {
 
   const matched = configRules.filter(r => {
     if (!isRuleActive(r, orderDate)) return false;
-    if (r.skuKeyword && !skuUpper.some(s => s.startsWith(r.skuKeyword))) return false;
-    if (r.platform && r.platform !== platformUpper) return false;
+    // Multi-family SKU: comma-separated, boundary match (family "ATP-00270" match "ATP-00270-34" แต่ไม่ match "ATP-0027X")
+    const kws = String(r.skuKeyword || '').split(',').map(k => k.trim()).filter(Boolean);
+    if (kws.length && !skuUpper.some(s => kws.some(kw => s === kw || s.startsWith(kw + '-')))) return false;
+    // Multi-channel: comma-separated, membership test (ว่าง = ทุกช่องทาง)
+    const plats = String(r.platform || '').split(',').map(p => p.trim()).filter(Boolean);
+    if (plats.length && plats.indexOf(platformUpper) === -1) return false;
     return true;
   });
 
@@ -335,7 +376,7 @@ function loadOrderVerificationMap() {
       value:      Number(row[OV.VALUE]) || 0,
       skus:       String(row[OV.SKUS] || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean),
       platform:   String(row[OV.PLATFORM] || '').trim(),
-      orderDate:  row[OV.ORDER_DATE] instanceof Date ? row[OV.ORDER_DATE] : null,
+      orderDate:  row[OV.ORDER_DATE] instanceof Date ? _toBangkok(row[OV.ORDER_DATE]) : null,
       status:     String(row[OV.STATUS] || ''),
     };
     if (oid) result.byOrderId.set(oid, order);
@@ -354,6 +395,7 @@ function doGet(e) {
     else if (action === 'checkDuplicate') result = actionCheckDuplicate(e.parameter);
     else if (action === 'getCoupons')     result = actionGetCoupons(e.parameter.userId);
     else if (action === 'getConsent')     result = actionGetConsent(e.parameter.userId);
+    else if (action === 'getLookupKeys')  result = actionGetLookupKeys(e.parameter);
     else                                  result = { error: 'unknown action: ' + action };
   } catch (err) {
     result = { error: err.toString() };
@@ -368,7 +410,7 @@ function actionGetProfile(userId) {
 
   const ss    = SpreadsheetApp.openById(AAPC_SHEET_ID);
   const sheet = ss.getSheetByName(SHEET_POINTS);
-  if (!sheet) return { points: 0, redeemable: 0, tier: 'เงิน', displayName: '', pointsToNext: 500, nextTierName: 'ทอง' };
+  if (!sheet) return _emptyProfile(userId);
 
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
@@ -384,10 +426,23 @@ function actionGetProfile(userId) {
         tier:         tierInfo.tier,
         nextTierName: tierInfo.nextTier,
         pointsToNext: tierInfo.pointsToNext,
+        tierKey:      tierInfo.key,
+        discountPct:  tierInfo.discountPct,
+        tierTable:    tierTablePublic(),
       };
     }
   }
-  return { userId: userId, displayName: '', points: 0, redeemable: 0, tier: 'เงิน', nextTierName: 'ทอง', pointsToNext: 500 };
+  return _emptyProfile(userId);
+}
+
+// โปรไฟล์เริ่มต้น (ยังไม่มีแถวใน Points_Master) — shape เดียวกับ found-branch ทุก field
+function _emptyProfile(userId) {
+  const t0 = computeTier(0);
+  return {
+    userId: userId, displayName: '', points: 0, redeemable: 0,
+    tier: t0.tier, nextTierName: t0.nextTier, pointsToNext: t0.pointsToNext,
+    tierKey: t0.key, discountPct: t0.discountPct, tierTable: tierTablePublic(),
+  };
 }
 
 // ─── actionGetHistory ─────────────────────────────────────────────────────────
@@ -415,7 +470,7 @@ function actionGetHistory(userId) {
     });
   }
   rows.reverse();
-  return rows.slice(0, 50);
+  return rows.slice(0, 30);   // 30 ล่าสุด (was 50) — บอสขอ 2026-07-06
 }
 
 // ─── actionCheckDuplicate ─────────────────────────────────────────────────────
@@ -453,10 +508,20 @@ function doPost(e) {
       resp = actionRedeem(data);
     } else if (type === 'consent') {
       resp = actionSetConsent(data);
+    } else if (type === 'adminAuth') {
+      resp = actionAdminAuth(data);
     } else if (type === 'adminLookup') {
       resp = actionAdminLookup(data);
     } else if (type === 'adminUseCoupon') {
       resp = actionAdminUseCoupon(data);
+    } else if (type === 'adminMemberSearch') {
+      resp = actionAdminMemberSearch(data);
+    } else if (type === 'adminListCampaigns') {
+      resp = actionAdminListCampaigns(data);
+    } else if (type === 'adminSaveCampaign') {
+      resp = actionAdminSaveCampaign(data);
+    } else if (type === 'adminDeleteCampaign') {
+      resp = actionAdminDeleteCampaign(data);
     } else {
       saveOrderData(data);
       ensurePointsMasterRow(data);
@@ -965,11 +1030,11 @@ function installTriggers() {
       ScriptApp.deleteTrigger(existing[i]);
     }
   }
-  // Daily 00:00 → runDailyBatch
-  ScriptApp.newTrigger('runDailyBatch').timeBased().atHour(0).everyDays(1).inTimezone('Asia/Bangkok').create();
+  // Daily 17:00 → runDailyBatch (ย้ายจาก 00:00 → 17:00, บอสขอ 2026-07-06: ลูกค้าโดน LINE push กวนตอนนอน)
+  ScriptApp.newTrigger('runDailyBatch').timeBased().atHour(17).everyDays(1).inTimezone('Asia/Bangkok').create();
   // Sunday 02:00 → cleanOldOrders
   ScriptApp.newTrigger('cleanOldOrders').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(2).inTimezone('Asia/Bangkok').create();
-  Logger.log('Triggers installed: runDailyBatch (daily 00:00), cleanOldOrders (Sun 02:00) — Asia/Bangkok');
+  Logger.log('Triggers installed: runDailyBatch (daily 17:00), cleanOldOrders (Sun 02:00) — Asia/Bangkok');
 }
 
 // ─── Redeem: coupon code generator ────────────────────────────────────────────
@@ -1139,6 +1204,11 @@ function isAdminOk(pwd) {
   return !!stored && String(pwd) === String(stored);
 }
 
+function actionAdminAuth(data) {
+  if (!data || !isAdminOk(data.password)) return { status: 'error', code: 'auth' };
+  return { status: 'ok' };
+}
+
 function _adminCouponState(row) {
   const usedFlag = row[RD.USED] === true || String(row[RD.USED]).toUpperCase() === 'TRUE';
   const expiry   = row[RD.EXPIRY_AT];
@@ -1238,6 +1308,292 @@ function actionAdminUseCoupon(data) {
   }
 }
 
+// actionAdminMemberSearch — read-only, no lock. ค้นสมาชิกจากชื่อ LINE (partial, case-insensitive)
+// สำหรับแอดมินเช็ค tier/ส่วนลดตอนเปิดบิล — ไม่คืน userId เต็ม (PDPA minimization)
+const MEMBER_SEARCH_LIMIT = 20;
+
+function actionAdminMemberSearch(data) {
+  if (!isAdminOk(data && data.password)) return { status: 'error', code: 'auth' };
+  const qRaw = String((data && data.query) || '').trim();
+  const q = qRaw.normalize('NFC').toLowerCase();
+  if (q.length < 2) return { status: 'error', code: 'shortquery' };
+
+  const ss = SpreadsheetApp.openById(AAPC_SHEET_ID);
+  const pm = ss.getSheetByName(SHEET_POINTS);
+  if (!pm) return { status: 'ok', count: 0, truncated: false, members: [] };
+
+  const rows = pm.getDataRange().getValues();
+  const matches = [];
+  for (let i = 1; i < rows.length; i++) {
+    const name = String(rows[i][PM.DISPLAY_NAME] || '').trim();
+    if (!name) continue;
+    if (name.normalize('NFC').toLowerCase().indexOf(q) < 0) continue;
+    matches.push(rows[i]);
+  }
+  // เรียงคนที่ active ล่าสุดขึ้นก่อน — มักเป็นคนที่กำลังคุยกับแอดมินอยู่
+  matches.sort(function (a, b) {
+    const da = a[PM.LAST_UPDATED], db = b[PM.LAST_UPDATED];
+    return (db instanceof Date ? db.getTime() : 0) - (da instanceof Date ? da.getTime() : 0);
+  });
+  const truncated = matches.length > MEMBER_SEARCH_LIMIT;
+  const top = matches.slice(0, MEMBER_SEARCH_LIMIT);
+
+  // Enrich จาก Data_Log: รูปโปรไฟล์ + ออเดอร์ล่าสุด ต่อ userId ที่ match — ไว้แยกคนชื่อซ้ำ
+  // Data_Log append ตามเวลา → แถวหลังสุดชนะ ไม่ต้อง sort
+  const wanted = {};
+  top.forEach(function (r) { wanted[String(r[PM.USER_ID])] = true; });
+  const latest = {};
+  const dl = ss.getSheetByName(SHEET_DATA_LOG);
+  if (dl && top.length) {
+    const d = dl.getDataRange().getValues();
+    for (let i = 1; i < d.length; i++) {
+      const uid = String(d[i][COL.USER_ID] || '');
+      if (!wanted[uid]) continue;
+      const cur = latest[uid] || {};
+      const pic = String(d[i][COL.PICTURE_URL] || '');
+      if (pic) cur.pictureUrl = pic;
+      const oid = String(d[i][COL.ORDER_ID] || '');
+      if (oid) { cur.lastOrderId = oid; cur.lastOrderAt = d[i][COL.TIMESTAMP]; }
+      latest[uid] = cur;
+    }
+  }
+
+  const members = top.map(function (r) {
+    const uid   = String(r[PM.USER_ID] || '');
+    const pts   = Number(r[PM.TIER_POINTS]) || 0;
+    const t     = computeTier(pts);
+    const extra = latest[uid] || {};
+    return {
+      displayName:  String(r[PM.DISPLAY_NAME] || ''),
+      userIdMasked: uid.length > 10 ? uid.slice(0, 6) + '…' + uid.slice(-4) : uid,
+      tier:         t.tier,
+      tierKey:      t.key,
+      discountPct:  t.discountPct,
+      tierPoints:   pts,
+      redeemable:   Number(r[PM.REDEEMABLE_POINTS]) || 0,
+      lastUpdated:  _fmtDate(r[PM.LAST_UPDATED]),
+      pictureUrl:   extra.pictureUrl  || '',
+      lastOrderId:  extra.lastOrderId || '',
+      lastOrderAt:  _fmtDate(extra.lastOrderAt),
+    };
+  });
+  return { status: 'ok', count: members.length, truncated: truncated, members: members };
+}
+
+// ─── Admin Promotion Manager ──────────────────────────────────────────────────
+// จัดการโปรโมชั่น point ×N ตามช่วงวันที่ + ช่องทาง (ไลฟ์/แคมเปญ) ผ่านหน้า admin
+// ใช้ engine เดิม: 1 แคมเปญ = 1 row ใน Config_Points (skuKeyword='', flatBonus=0, มี CampaignId)
+// calculatePoints/isRuleActive/loadConfigPoints รองรับอยู่แล้ว — ที่เพิ่มคือ CRUD + guard
+
+// ensure คอลัมน์ CampaignId มีใน Config_Points (idempotent, backward-compatible)
+function ensureCampaignSchema() {
+  const ss = SpreadsheetApp.openById(AAPC_SHEET_ID);
+  let sheet = ss.getSheetByName(SHEET_CONFIG);
+  if (!sheet) { sheet = ss.insertSheet(SHEET_CONFIG); sheet.appendRow(CFG_HEADERS); return sheet; }
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (String(header[CFG.CAMPAIGN_ID] || '') !== 'CampaignId') {
+    sheet.getRange(1, CFG.CAMPAIGN_ID + 1).setValue('CampaignId');
+  }
+  return sheet;
+}
+
+// สถานะโปรฯ เทียบกับ "ตอนนี้": upcoming / active / expired (datetime ตรงๆ — end ว่าง = ไม่มีวันหมด)
+function _campaignStatus(startDate, endDate, now) {
+  now = now || new Date();
+  if (startDate instanceof Date && now < startDate) return 'upcoming';
+  if (endDate instanceof Date && now > endDate) return 'expired';
+  return 'active';
+}
+
+// distinct Platform จริงจาก Order_Verification — ให้ dropdown ช่องทางตรงข้อมูลจริง (ไม่ hardcode)
+function _distinctOrderPlatforms() {
+  const ss = SpreadsheetApp.openById(AAPC_SHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_ORDERS);
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const seen = {};
+  for (let i = 1; i < data.length; i++) {
+    const p = String(data[i][OV.PLATFORM] || '').trim();
+    if (p) seen[p] = true;
+  }
+  return Object.keys(seen).sort();
+}
+
+// 'yyyy-MM-dd' → Date (script tz midnight) หรือ null
+function _parseYMD(s) {
+  const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// 'yyyy-MM-ddTHH:mm' (จาก <input type="datetime-local">) → Date (script tz = Asia/Bangkok, ตรงกับที่ admin กรอก)
+// รองรับ 'yyyy-MM-dd' เก่า (เที่ยงคืน) ให้ backward-compat กับโปรฯ ก่อน Phase 3 ด้วย
+function _parseDateTime(s) {
+  const str = String(s || '').trim();
+  const m = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (m) {
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return _parseYMD(str);
+}
+
+// actionAdminListCampaigns — read-only. คืนโปรฯ ล่าสุด 5 รายการ + platformsSeen + baseRate
+function actionAdminListCampaigns(data) {
+  if (!isAdminOk(data && data.password)) return { status: 'error', code: 'auth' };
+  const sheet = ensureCampaignSchema();
+  const rows = sheet.getDataRange().getValues();
+  const now = new Date();
+  const campaigns = [];
+  for (let i = 1; i < rows.length; i++) {
+    const id = String(rows[i][CFG.CAMPAIGN_ID] || '').trim();
+    if (!id) continue; // แสดงเฉพาะแคมเปญที่สร้างผ่าน UI (rule เดิมที่กรอกมือไม่มี id → ไม่ยุ่ง)
+    const start = rows[i][CFG.START_DATE] instanceof Date ? rows[i][CFG.START_DATE] : null;
+    const end   = rows[i][CFG.END_DATE]   instanceof Date ? rows[i][CFG.END_DATE]   : null;
+    const skuKeyword  = String(rows[i][CFG.SKU_KEYWORD] || '').trim();
+    const platformRaw = String(rows[i][CFG.PLATFORM]    || '').trim();
+    campaigns.push({
+      id:                id,
+      multiplier:        Number(rows[i][CFG.MULTIPLIER]) || 1,
+      skus:              skuKeyword  ? skuKeyword.split(',').map(function (s) { return s.trim(); }).filter(Boolean)  : [],
+      platforms:         platformRaw ? platformRaw.split(',').map(function (p) { return p.trim(); }).filter(Boolean) : [],
+      startDateForInput: start ? Utilities.formatDate(start, 'Asia/Bangkok', "yyyy-MM-dd'T'HH:mm") : '',
+      endDateForInput:   end   ? Utilities.formatDate(end,   'Asia/Bangkok', "yyyy-MM-dd'T'HH:mm") : '',
+      startDate:         start ? Utilities.formatDate(start, 'Asia/Bangkok', 'dd/MM/yyyy HH:mm') : '',
+      endDate:           end   ? Utilities.formatDate(end,   'Asia/Bangkok', 'dd/MM/yyyy HH:mm') : 'ไม่มีวันหมด',
+      note:              String(rows[i][CFG.NOTE] || ''),
+      status:            _campaignStatus(start, end, now),
+      _sort:             start ? start.getTime() : 0,
+    });
+  }
+  campaigns.sort(function (a, b) { return b._sort - a._sort; });
+  const top = campaigns.slice(0, CAMPAIGN_LIST_LIMIT);
+  top.forEach(function (c) { delete c._sort; });
+  return {
+    status:        'ok',
+    campaigns:     top,
+    platformsSeen: _distinctOrderPlatforms(),
+    baseRate:      POINTS_BASE_RATE,
+    maxMultiplier: CAMPAIGN_MAX_MULTIPLIER,
+  };
+}
+
+// actionAdminSaveCampaign — create (ไม่มี id) หรือ update (มี id) โปรฯ ×N ช่วงวัน-เวลา + หลายช่องทาง + หลายรุ่น SKU
+function actionAdminSaveCampaign(data) {
+  if (!isAdminOk(data && data.password)) return { status: 'error', code: 'auth' };
+  const mult = Math.round(Number(data && data.multiplier));
+  if (!(mult >= 1 && mult <= CAMPAIGN_MAX_MULTIPLIER)) {
+    return { status: 'error', code: 'badmultiplier', message: 'ตัวคูณต้องเป็น 1–' + CAMPAIGN_MAX_MULTIPLIER };
+  }
+  const startRaw = String((data && data.startDate) || '').trim();
+  const endRaw   = String((data && data.endDate)   || '').trim();
+  const start = startRaw ? _parseDateTime(startRaw) : null;
+  const end   = endRaw   ? _parseDateTime(endRaw)   : null;
+  if (startRaw && !start) return { status: 'error', code: 'baddate', message: 'รูปแบบวันเริ่มไม่ถูกต้อง' };
+  if (endRaw   && !end)   return { status: 'error', code: 'baddate', message: 'รูปแบบวันจบไม่ถูกต้อง' };
+  if (start && end && start > end) return { status: 'error', code: 'baddate', message: 'วันเริ่มต้องไม่เกินวันจบ' };
+  // end ว่าง = ไม่มีวันหมด (โปรฯ ถาวร); start ว่าง = active ทันที
+  const skus = String((data && data.skus) || '').split(',')
+    .map(function (s) { return s.trim().toUpperCase(); }).filter(Boolean).join(',');   // '' = ทุกสินค้า
+  const platform = String((data && data.platform) || '').split(',')
+    .map(function (p) { return p.trim(); }).filter(Boolean).join(',');                 // '' = ทุกช่องทาง
+  const note     = String((data && data.note) || '').trim().slice(0, 120);
+  const id       = String((data && data.id) || '').trim();
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(LOCK_TIMEOUT_MS);
+    const sheet = ensureCampaignSchema();
+    if (id) {
+      const rows = sheet.getDataRange().getValues();
+      for (let i = 1; i < rows.length; i++) {
+        if (String(rows[i][CFG.CAMPAIGN_ID] || '').trim() === id) {
+          const r = i + 1;
+          sheet.getRange(r, CFG.SKU_KEYWORD + 1).setValue(skus);
+          sheet.getRange(r, CFG.PLATFORM + 1).setValue(platform);
+          sheet.getRange(r, CFG.MULTIPLIER + 1).setValue(mult);
+          sheet.getRange(r, CFG.START_DATE + 1).setValue(start || '');
+          sheet.getRange(r, CFG.END_DATE + 1).setValue(end || '');
+          sheet.getRange(r, CFG.NOTE + 1).setValue(note);
+          return { status: 'ok', id: id, updated: true };
+        }
+      }
+      return { status: 'error', code: 'notfound', message: 'ไม่พบแคมเปญนี้ (อาจถูกลบไปแล้ว)' };
+    }
+    // create ใหม่ — flatBonus=0 (flat bonus ไม่มี UI, ใช้เฉพาะ manual rule เดิมในชีต)
+    const newId = 'CMP-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    const row = [];
+    row[CFG.SKU_KEYWORD] = skus;
+    row[CFG.PLATFORM]    = platform;
+    row[CFG.MULTIPLIER]  = mult;
+    row[CFG.FLAT_BONUS]  = 0;
+    row[CFG.START_DATE]  = start || '';
+    row[CFG.END_DATE]    = end || '';
+    row[CFG.NOTE]        = note;
+    row[CFG.CAMPAIGN_ID] = newId;
+    sheet.appendRow(row);
+    return { status: 'ok', id: newId, created: true };
+  } catch (err) {
+    Logger.log('actionAdminSaveCampaign error: ' + err);
+    return { status: 'error', code: 'exception', message: err.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch (_) {}
+  }
+}
+
+// actionAdminDeleteCampaign — ลบโปรฯ ตาม CampaignId
+function actionAdminDeleteCampaign(data) {
+  if (!isAdminOk(data && data.password)) return { status: 'error', code: 'auth' };
+  const id = String((data && data.id) || '').trim();
+  if (!id) return { status: 'error', code: 'noid' };
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(LOCK_TIMEOUT_MS);
+    const sheet = ensureCampaignSchema();
+    const rows = sheet.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][CFG.CAMPAIGN_ID] || '').trim() === id) {
+        sheet.deleteRow(i + 1);
+        return { status: 'ok' };
+      }
+    }
+    return { status: 'error', code: 'notfound' };
+  } catch (err) {
+    Logger.log('actionAdminDeleteCampaign error: ' + err);
+    return { status: 'error', code: 'exception', message: err.toString() };
+  } finally {
+    try { lock.releaseLock(); } catch (_) {}
+  }
+}
+
+// Manual test — run in GAS editor. create → list → edit(ถาวร) → validate → delete
+function testAdminCampaign() {
+  const pwd = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD') || 'SET_ME';
+  Logger.log('0) wrong pwd → '  + JSON.stringify(actionAdminListCampaigns({ password: 'WRONG' })));
+  const save = actionAdminSaveCampaign({
+    password: pwd, multiplier: 2, platform: 'ATIPASHOP,Tiktok', skus: 'ATP-00270',
+    startDate: '2026-07-06T19:00', endDate: '2026-07-06T21:00', note: 'TEST ไลฟ์ LINE+TikTok',
+  });
+  Logger.log('1) create ×2 LINE+TikTok, SKU ATP-00270, 19:00-21:00 → ' + JSON.stringify(save));
+  const id = save.id;
+  Logger.log('2) list → ' + JSON.stringify(actionAdminListCampaigns({ password: pwd })));
+  Logger.log('3) edit ×3 LINE-only, ไม่จำกัดรุ่น, ไม่มีวันหมด (ถาวร) → ' + JSON.stringify(actionAdminSaveCampaign({
+    password: pwd, id: id, multiplier: 3, platform: 'ATIPASHOP', skus: '',
+    startDate: '2026-07-06T19:00', endDate: '', note: 'TEST ถาวร LINE',
+  })));
+  Logger.log('4) bad multiplier 99 (cap=' + CAMPAIGN_MAX_MULTIPLIER + ') → ' + JSON.stringify(actionAdminSaveCampaign({
+    password: pwd, multiplier: 99, startDate: '2026-07-06T19:00', endDate: '2026-07-06T21:00', note: 'x',
+  })));
+  Logger.log('5) bad date start>end → ' + JSON.stringify(actionAdminSaveCampaign({
+    password: pwd, multiplier: 2, startDate: '2026-07-10T00:00', endDate: '2026-07-08T00:00', note: 'x',
+  })));
+  Logger.log('6) delete → ' + JSON.stringify(actionAdminDeleteCampaign({ password: pwd, id: id })));
+  Logger.log('7) list after delete → ' + JSON.stringify(actionAdminListCampaigns({ password: pwd })));
+  Logger.log('คาดหวัง: 0=auth, 1=ok+id, 2=มี 1 อัน status active/upcoming skus=[ATP-00270] platforms=[ATIPASHOP,Tiktok], 3=ok updated endDate=ไม่มีวันหมด, 4=badmultiplier, 5=baddate, 6=ok, 7=ไม่มี test row เหลือ');
+}
+
 // Manual test — run in GAS editor. Creates a test coupon, looks it up, uses it, re-looks-up.
 function testAdminCoupon() {
   const TEST_USER = 'Uadmintest001';
@@ -1263,6 +1619,27 @@ function testAdminCoupon() {
   Logger.log('4) use → ' + JSON.stringify(actionAdminUseCoupon({ password: pwd, code: code, orderId: 'TEST-ORDER-99', adminName: 'ทดสอบ' })));
   Logger.log('5) lookup(after use) → ' + JSON.stringify(actionAdminLookup({ password: pwd, code: code })));
   Logger.log('6) use again (should be used) → ' + JSON.stringify(actionAdminUseCoupon({ password: pwd, code: code, orderId: 'TEST-ORDER-XX', adminName: 'ทดสอบ2' })));
+}
+
+// Manual test — run in GAS editor. Seeds a test member, then exercises adminMemberSearch.
+function testAdminMemberSearch() {
+  const TEST_USER = 'Umembersearch001';
+  const ss = SpreadsheetApp.openById(AAPC_SHEET_ID);
+  const pm = ss.getSheetByName(SHEET_POINTS);
+  let found = false;
+  const pmData = pm.getDataRange().getValues();
+  for (let i = 1; i < pmData.length; i++) {
+    if (String(pmData[i][PM.USER_ID]) === TEST_USER) { found = true; break; }
+  }
+  if (!found) pm.appendRow([TEST_USER, 'ทดสอบค้นหา Search-Tester', 650, 200, 'ทอง', new Date()]);
+
+  const pwd = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD') || 'SET_ME';
+  Logger.log('1) wrong pwd → '      + JSON.stringify(actionAdminMemberSearch({ password: 'WRONG', query: 'ทดสอบ' })));
+  Logger.log('2) short query → '    + JSON.stringify(actionAdminMemberSearch({ password: pwd, query: 'ท' })));
+  Logger.log('3) thai partial → '   + JSON.stringify(actionAdminMemberSearch({ password: pwd, query: 'ทดสอบค้น' })));
+  Logger.log('4) latin any-case → ' + JSON.stringify(actionAdminMemberSearch({ password: pwd, query: 'search-tester' })));
+  Logger.log('5) not found → '      + JSON.stringify(actionAdminMemberSearch({ password: pwd, query: 'zzz_no_such_name' })));
+  Logger.log('คาดหวัง: 3) และ 4) เจอสมาชิก tierKey=gold, discountPct=10 · NOTE: test row uid=' + TEST_USER + ' ค้างใน Points_Master — ลบเองถ้าต้องการ');
 }
 
 // ─── PDPA Consent ──────────────────────────────────────────────────────────────
@@ -1303,7 +1680,97 @@ function actionSetConsent(data) {
   return { status: 'success', consented: true };
 }
 
+// ─── actionGetLookupKeys ──────────────────────────────────────────────────────
+// ส่งรายการ key ที่ต้องค้นใน JSTERP สำหรับ targeted pull pipeline
+// Query params:
+//   token  — ต้องตรง Script Property "LOOKUP_TOKEN" (ถ้าไม่ set ไว้จะข้ามเช็ค)
+// Response:
+//   { orderIds: [...], trackingNos: [...], pendingCount: N, recheckCount: N }
+//   orderIds    — Order IDs ทั้งหมดจากแถว pending + recheck
+//   trackingNos — Tracking Nos จากแถวที่ไม่มี OrderID เท่านั้น (tracking-only submissions)
+function actionGetLookupKeys(params) {
+  // Token guard — ป้องกัน endpoint นี้ expose เลขออเดอร์ออกโดยไม่ตั้งใจ
+  const expectedToken = PropertiesService.getScriptProperties().getProperty('LOOKUP_TOKEN');
+  if (expectedToken) {
+    if (!params || params.token !== expectedToken) {
+      return { error: 'unauthorized' };
+    }
+  }
+
+  const ss    = SpreadsheetApp.openById(AAPC_SHEET_ID);
+  const sheet = ss.getSheetByName(SHEET_DATA_LOG);
+  if (!sheet) return { orderIds: [], trackingNos: [], pendingCount: 0, recheckCount: 0 };
+
+  const data = sheet.getDataRange().getValues();
+  const now  = Date.now();
+  const recheckWindowMs = RECHECK_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+  const orderIdSet    = new Set();
+  const trackingNoSet = new Set();
+  let pendingCount = 0;
+  let recheckCount = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row       = data[i];
+    const status    = String(row[COL.STATUS] || '').trim();
+    const orderId   = String(row[COL.ORDER_ID]    || '').trim().toUpperCase();
+    const tracking  = String(row[COL.TRACKING_NO] || '').trim().toUpperCase();
+
+    let include = false;
+
+    // pending: ยังรอตรวจ
+    if (status === 'รอตรวจ' || status === 'Verifying') {
+      include = true;
+      pendingCount++;
+    }
+
+    // recheck: ได้แต้มแล้ว แต่ยังอยู่ในช่วง 10 วัน → เช็คซ้ำว่ามี refund/return ไหม
+    if (status === 'ได้แต้ม') {
+      const processedAt = row[COL.PROCESSED_AT];
+      if (processedAt instanceof Date && (now - processedAt.getTime()) <= recheckWindowMs) {
+        include = true;
+        recheckCount++;
+      }
+    }
+
+    if (!include) continue;
+
+    if (orderId) {
+      orderIdSet.add(orderId);
+    } else if (tracking) {
+      // tracking-only: ลูกค้ากรอกแค่เลขแทรค ไม่มี Order ID → ค้นรอบ 2
+      trackingNoSet.add(tracking);
+    }
+  }
+
+  return {
+    orderIds:     Array.from(orderIdSet),
+    trackingNos:  Array.from(trackingNoSet),
+    pendingCount: pendingCount,
+    recheckCount: recheckCount,
+  };
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
+// testTierConfig — เช็ค boundary ทุกจุดว่า computeTier ให้ผลเหมือนโค้ดเดิม + field ใหม่ครบ
+function testTierConfig() {
+  function chk(pts, tier, next, toNext) {
+    const r = computeTier(pts);
+    const ok = r.tier === tier && r.nextTier === next && r.pointsToNext === toNext &&
+               typeof r.key === 'string' && typeof r.discountPct === 'number';
+    Logger.log((ok ? '✓ ' : '✗ ') + pts + ' → ' + JSON.stringify(r));
+  }
+  chk(0,    'เงิน', 'ทอง',  500);
+  chk(499,  'เงิน', 'ทอง',  1);
+  chk(500,  'ทอง',  'เพชร', 500);
+  chk(999,  'ทอง',  'เพชร', 1);
+  chk(1000, 'เพชร', null,   0);
+  chk(5000, 'เพชร', null,   0);
+  chk(-5,   'เงิน', 'ทอง',  505); // negative input — พฤติกรรมเดิม
+  Logger.log('tierTablePublic → ' + JSON.stringify(tierTablePublic()));
+  Logger.log('fallback profile → ' + JSON.stringify(actionGetProfile('NON_EXISTENT_USER_XX')));
+}
+
 function testCalculatePoints() {
   // Helper: assert
   function assertEq(actual, expected, label) {
@@ -1348,6 +1815,29 @@ function testCalculatePoints() {
   const rulesLine = [{ skuKeyword:'', platform:'LINE', multiplier:2, flatBonus:0, startDate:null, endDate:null, note:'LINE x2' }];
   assertEq(calculatePoints(1000, [], 'LINE', today, rulesLine).points, 10, '1000฿ + LINE×2 → 10');
   assertEq(calculatePoints(1000, [], 'TikTok', today, rulesLine).points, 5, '1000฿ on TikTok (no LINE bonus) → 5');
+
+  // Phase 3: datetime window (เจาะชั่วโมง)
+  const liveStart = new Date(2026, 6, 6, 19, 0);
+  const liveEnd   = new Date(2026, 6, 6, 21, 0);
+  const rulesLive = [{ skuKeyword:'', platform:'', multiplier:3, flatBonus:0, startDate:liveStart, endDate:liveEnd, note:'Live 19-21' }];
+  assertEq(calculatePoints(1000, [], '', new Date(2026, 6, 6, 20, 0), rulesLive).points, 15, 'live window 20:00 (in) → 15');
+  assertEq(calculatePoints(1000, [], '', new Date(2026, 6, 6, 22, 0), rulesLive).points, 5,  'live window 22:00 (out, after end) → 5');
+  assertEq(calculatePoints(1000, [], '', new Date(2026, 6, 6, 18, 0), rulesLive).points, 5,  'live window 18:00 (out, before start) → 5');
+
+  // Phase 3: end ว่าง = ไม่มีวันหมด (โปรฯ ถาวร)
+  const rulesForever = [{ skuKeyword:'', platform:'ATIPASHOP', multiplier:2, flatBonus:0, startDate:new Date(2026, 0, 1), endDate:null, note:'LINE forever' }];
+  assertEq(calculatePoints(1000, [], 'ATIPASHOP', new Date(2030, 0, 1), rulesForever).points, 10, 'no-end campaign ยัง active ในอนาคตไกล → 10');
+
+  // Phase 3: multi-family SKU (comma-separated, boundary-safe — กัน over-match)
+  const rulesMultiSku = [{ skuKeyword:'ATP-00270,ATP-00350', platform:'', multiplier:2, flatBonus:0, startDate:null, endDate:null, note:'2 families' }];
+  assertEq(calculatePoints(1000, ['ATP-00350-6'],   '', today, rulesMultiSku).points, 10, 'multi-family match รุ่นที่ 2 (ATP-00350-6) → 10');
+  assertEq(calculatePoints(1000, ['ATP-002700-9'],  '', today, rulesMultiSku).points, 5,  'multi-family ไม่ over-match (ATP-002700-9 ≠ family ATP-00270) → 5');
+
+  // Phase 3: multi-channel (comma-separated, membership test)
+  const rulesMultiChannel = [{ skuKeyword:'', platform:'ATIPASHOP,TIKTOK', multiplier:2, flatBonus:0, startDate:null, endDate:null, note:'LINE+TikTok' }];
+  assertEq(calculatePoints(1000, [], 'ATIPASHOP', today, rulesMultiChannel).points, 10, 'multi-channel match LINE → 10');
+  assertEq(calculatePoints(1000, [], 'TIKTOK',    today, rulesMultiChannel).points, 10, 'multi-channel match TikTok → 10');
+  assertEq(calculatePoints(1000, [], 'SHOPEE',    today, rulesMultiChannel).points, 5,  'multi-channel ไม่ match Shopee (ไม่อยู่ในลิสต์) → 5');
 
   Logger.log('testCalculatePoints done');
 }
