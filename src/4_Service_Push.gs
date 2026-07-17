@@ -85,6 +85,6 @@ function _linePush(userId, token, text) {
       muteHttpExceptions: true,
     });
   } catch (err) {
-    Logger.log('_linePush error for ' + userId + ': ' + err);
+    Logger.log('_linePush error for ' + maskId(userId) + ': ' + err);
   }
 }

@@ -116,9 +116,11 @@ function actionCheckDuplicate(params) {
 // ─── doPost: Receive LIFF Submission ─────────────────────────────────────────
 function doPost(e) {
   try {
-    Logger.log('doPost body: ' + (e.postData && e.postData.contents));
     const data = JSON.parse(e.postData.contents);
     const type = String((data && data.type) || 'order');
+    // ห้าม log ทั้ง body ดิบ — action ฝั่งแอดมินแนบ password มาด้วยทุกครั้ง (isAdminOk)
+    // และ order/consent มี displayName/pictureUrl ของลูกค้า — log แค่ type + userId ที่ mask แล้วพอ
+    Logger.log('doPost type=' + type + ' userId=' + maskId(data && data.userId));
     let resp;
     if (type === 'redeem') {
       resp = actionRedeem(data);
