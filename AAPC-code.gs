@@ -117,7 +117,8 @@ const CN_HEADERS = ['UserID','DisplayName','ConsentVersion','ConsentedAt'];
 const TIER_CONFIG = [
   { key: 'silver',  name: 'เงิน', nameEn: 'Silver',  min: 0,    max: 499,  discountPct: 5  },
   { key: 'gold',    name: 'ทอง',  nameEn: 'Gold',    min: 500,  max: 999,  discountPct: 10 },
-  { key: 'diamond', name: 'เพชร', nameEn: 'Diamond', min: 1000, max: null, discountPct: 20 },
+  { key: 'diamond', name: 'เพชร', nameEn: 'Diamond', min: 1000, max: 1999, discountPct: 15 }, // 20→15 ตามมติ CEO 2026-07-16
+  { key: 'vvip',    name: 'VVIP', nameEn: 'VVIP',    min: 2000, max: null, discountPct: 21 }, // เกณฑ์ 2,000 บอสยืนยัน 2026-07-16
 ];
 
 // ─── Tier Computation ─────────────────────────────────────────────────────────
@@ -1406,16 +1407,23 @@ function _campaignStatus(startDate, endDate, now) {
   return 'active';
 }
 
-// distinct Platform จริงจาก Order_Verification — ให้ dropdown ช่องทางตรงข้อมูลจริง (ไม่ hardcode)
+// ช่องทางที่ร้านมีจริง = ชื่อร้านค้าใน JSTERP (canonical UPPERCASE — CHANNEL_LABELS ใน admin.html map เป็นชื่อโชว์)
+// Order_Verification เก็บแค่ 60 วัน — ถ้าไม่ union ค่าคงที่ ช่องทางที่ไม่มีออเดอร์ช่วงนั้นจะหายจาก checkbox
+const KNOWN_PLATFORMS = ['ATIPASHOP', 'TIKTOK', 'SHOPEE', 'ATIPASHOP.SG'];
+
+// distinct Platform จาก Order_Verification ∪ KNOWN_PLATFORMS — matching เดิม case-insensitive อยู่แล้ว
 function _distinctOrderPlatforms() {
+  const seen = {};
+  KNOWN_PLATFORMS.forEach(function (p) { seen[p] = true; });
   const ss = SpreadsheetApp.openById(AAPC_SHEET_ID);
   const sheet = ss.getSheetByName(SHEET_ORDERS);
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  const seen = {};
-  for (let i = 1; i < data.length; i++) {
-    const p = String(data[i][OV.PLATFORM] || '').trim();
-    if (p) seen[p] = true;
+  if (sheet) {
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      let p = String(data[i][OV.PLATFORM] || '').trim().toUpperCase();
+      if (p === 'LINE') p = 'ATIPASHOP'; // ค่าเก่า/แถว TEST ใช้ 'LINE' — กัน checkbox "LINE" โผล่ซ้ำ
+      if (p) seen[p] = true;
+    }
   }
   return Object.keys(seen).sort();
 }
@@ -1764,8 +1772,10 @@ function testTierConfig() {
   chk(499,  'เงิน', 'ทอง',  1);
   chk(500,  'ทอง',  'เพชร', 500);
   chk(999,  'ทอง',  'เพชร', 1);
-  chk(1000, 'เพชร', null,   0);
-  chk(5000, 'เพชร', null,   0);
+  chk(1000, 'เพชร', 'VVIP', 1000);
+  chk(1999, 'เพชร', 'VVIP', 1);
+  chk(2000, 'VVIP', null,   0);
+  chk(5000, 'VVIP', null,   0);
   chk(-5,   'เงิน', 'ทอง',  505); // negative input — พฤติกรรมเดิม
   Logger.log('tierTablePublic → ' + JSON.stringify(tierTablePublic()));
   Logger.log('fallback profile → ' + JSON.stringify(actionGetProfile('NON_EXISTENT_USER_XX')));

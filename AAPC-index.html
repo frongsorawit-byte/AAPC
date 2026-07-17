@@ -73,11 +73,13 @@
       --tier-silver-accent:  #66727E;
       --tier-gold-accent:    #A07E36;
       --tier-diamond-accent: #3E5E80;
+      --tier-vvip-accent:    #8A6A2F;
     }
     body.dark-theme {
       --tier-silver-accent:  #A9B4BF;
       --tier-gold-accent:    #D3AC5F;
       --tier-diamond-accent: #8FB6D9;
+      --tier-vvip-accent:    #E8CC86;
     }
     body[data-tier="silver"] {
       --tier-accent:     var(--tier-silver-accent);
@@ -105,6 +107,15 @@
       --tier-card-sub:   rgba(234, 243, 251, 0.58);
       --tier-sheen:      rgba(160, 215, 255, 0.22);
       --tier-emblem-ink: #BFDCF5;
+    }
+    body[data-tier="vvip"] {
+      --tier-accent:     var(--tier-vvip-accent);
+      --tier-card-a:     #100D08;
+      --tier-card-b:     #3A2F1B;
+      --tier-card-ink:   #F6EFDD;
+      --tier-card-sub:   rgba(246, 239, 221, 0.60);
+      --tier-sheen:      rgba(232, 204, 134, 0.30);
+      --tier-emblem-ink: #E8CC86;
     }
 
     body {
@@ -553,9 +564,10 @@
     body[data-tier] .tier-active .tier-name,
     body[data-tier] .tier-active .tier-benefit { color: var(--tier-accent); }
 
-    /* ประกายเพชร — เฉพาะระดับเพชร */
+    /* ประกายเพชร — ระดับเพชร + VVIP (VVIP เปลี่ยนโทนเป็นทองแชมเปญ) */
     .card-top .sparkle { display: none; }
-    body[data-tier="diamond"] .card-top .sparkle {
+    body[data-tier="diamond"] .card-top .sparkle,
+    body[data-tier="vvip"] .card-top .sparkle {
       display: block;
       position: absolute;
       width: 3px;
@@ -565,6 +577,10 @@
       box-shadow: 0 0 6px 1px rgba(160, 215, 255, 0.7);
       animation: twinkle 3.6s ease-in-out infinite;
       pointer-events: none;
+    }
+    body[data-tier="vvip"] .card-top .sparkle {
+      background: rgba(255, 240, 200, 0.95);
+      box-shadow: 0 0 6px 1px rgba(232, 204, 134, 0.75);
     }
     @keyframes twinkle {
       0%, 100% { opacity: 0; transform: scale(0.6); }
@@ -1444,8 +1460,18 @@
             <div class="tier-name-sub">Diamond</div>
           </div>
           <div class="tier-value">
-            <div class="tier-benefit">ส่วนลด 20%</div>
-            <div class="tier-range">1,000+ คะแนน</div>
+            <div class="tier-benefit">ส่วนลด 15%</div>
+            <div class="tier-range">1,000 – 1,999 คะแนน</div>
+          </div>
+        </div>
+        <div class="tier-row" id="guide-vvip">
+          <div>
+            <div class="tier-name">VVIP</div>
+            <div class="tier-name-sub">Very VIP</div>
+          </div>
+          <div class="tier-value">
+            <div class="tier-benefit">ส่วนลด 21%</div>
+            <div class="tier-range">2,000+ คะแนน</div>
           </div>
         </div>
       </div>
@@ -1622,7 +1648,11 @@
           </div>
           <div class="info-row">
             <span class="info-key">เพชร — Diamond</span>
-            <span class="info-val" id="info-tier-diamond">ส่วนลด 20% · 1,000+ คะแนน</span>
+            <span class="info-val" id="info-tier-diamond">ส่วนลด 15% · 1,000–1,999 คะแนน</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">VVIP</span>
+            <span class="info-val" id="info-tier-vvip">ส่วนลด 21% · 2,000+ คะแนน</span>
           </div>
         </div>
         <p class="note-text">ส่วนลดประจำระดับใช้กับทุกคำสั่งซื้อผ่าน LINE</p>
@@ -1899,16 +1929,18 @@
 
     // ── Dashboard ───────────────────────────────────────────────
     // DEV preview data — so the redeem UI is visible on localhost (real userId returns 0)
-    // ดูการ์ดแต่ละระดับ: http://localhost:8000/AAPC-index.html?tier=silver|gold|diamond
+    // ดูการ์ดแต่ละระดับ: http://localhost:8000/AAPC-index.html?tier=silver|gold|diamond|vvip
     const DEV_TIER_TABLE = [
       { key: 'silver',  name: 'เงิน', nameEn: 'Silver',  min: 0,    max: 499,  discountPct: 5  },
       { key: 'gold',    name: 'ทอง',  nameEn: 'Gold',    min: 500,  max: 999,  discountPct: 10 },
-      { key: 'diamond', name: 'เพชร', nameEn: 'Diamond', min: 1000, max: null, discountPct: 20 },
+      { key: 'diamond', name: 'เพชร', nameEn: 'Diamond', min: 1000, max: 1999, discountPct: 15 },
+      { key: 'vvip',    name: 'VVIP', nameEn: 'VVIP',    min: 2000, max: null, discountPct: 21 },
     ];
     const DEV_TIER_PRESETS = {
       silver:  { points: 250,  redeemable: 80,  tier: 'เงิน', tierKey: 'silver',  discountPct: 5,  nextTierName: 'ทอง',  pointsToNext: 250, displayName: 'Dev Test', tierTable: DEV_TIER_TABLE },
       gold:    { points: 540,  redeemable: 180, tier: 'ทอง',  tierKey: 'gold',    discountPct: 10, nextTierName: 'เพชร', pointsToNext: 460, displayName: 'Dev Test', tierTable: DEV_TIER_TABLE },
-      diamond: { points: 1250, redeemable: 400, tier: 'เพชร', tierKey: 'diamond', discountPct: 20, nextTierName: null,   pointsToNext: 0,   displayName: 'Dev Test', tierTable: DEV_TIER_TABLE },
+      diamond: { points: 1250, redeemable: 400, tier: 'เพชร', tierKey: 'diamond', discountPct: 15, nextTierName: 'VVIP', pointsToNext: 750, displayName: 'Dev Test', tierTable: DEV_TIER_TABLE },
+      vvip:    { points: 2600, redeemable: 800, tier: 'VVIP', tierKey: 'vvip',    discountPct: 21, nextTierName: null,   pointsToNext: 0,   displayName: 'Dev Test', tierTable: DEV_TIER_TABLE },
     };
     const DEV_TIER_OVERRIDE = new URLSearchParams(location.search).get('tier');
     const DEV_GAS_PROFILE = DEV_TIER_PRESETS.gold;
@@ -1931,8 +1963,8 @@
       }
     }
 
-    const TIER_KEY_MAP = { 'เงิน': 'silver', 'ทอง': 'gold', 'เพชร': 'diamond' };
-    const FALLBACK_DISCOUNT = { silver: 5, gold: 10, diamond: 20 }; // เผื่อ GAS deployment เก่าที่ยังไม่ส่ง discountPct
+    const TIER_KEY_MAP = { 'เงิน': 'silver', 'ทอง': 'gold', 'เพชร': 'diamond', 'VVIP': 'vvip' };
+    const FALLBACK_DISCOUNT = { silver: 5, gold: 10, diamond: 15, vvip: 21 }; // เผื่อ GAS deployment เก่าที่ยังไม่ส่ง discountPct
 
     function renderDashboard(p) {
       const points   = Number(p.points) || 0;
@@ -1987,7 +2019,7 @@
         document.getElementById('progress-label').textContent = 'ระดับสูงสุด';
       }
 
-      ['silver', 'gold', 'diamond'].forEach(t => {
+      ['silver', 'gold', 'diamond', 'vvip'].forEach(t => {
         document.getElementById('guide-' + t).classList.remove('tier-active');
       });
       const activeKey = TIER_KEY_MAP[p.tier];

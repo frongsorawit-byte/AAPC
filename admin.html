@@ -272,7 +272,9 @@
     .calc-explain .ce-mult { color: var(--caramel); font-weight: 600; }
     .calc-explain .ce-eg { margin-top: 10px; padding: 10px 12px; background: var(--grey-50); border-radius: 4px; font-size: 12px; color: var(--grey-600); }
     .field-row { display: flex; gap: 12px; }
-    .field-row .field { flex: 1; }
+    /* min-width:0 — flex child default หดต่ำกว่า intrinsic width ไม่ได้
+       ทำให้ datetime-local 2 ช่อง (กว้างขั้นต่ำ ~180px+) ดันช่องขวาตกขอบการ์ด */
+    .field-row .field { flex: 1; min-width: 0; }
     .mult-row { display: flex; gap: 8px; align-items: center; }
     .mult-btn {
       height: 44px; min-width: 52px; padding: 0 14px;
@@ -343,6 +345,7 @@
     .tier-badge.silver  { background: #7C8894; }
     .tier-badge.gold    { background: #B8834E; }
     .tier-badge.diamond { background: #1C2B45; }
+    .tier-badge.vvip    { background: #2B2118; }
     .member-empty { margin: 20px 16px; text-align: center; font-size: 13px; color: var(--grey-600); line-height: 1.7; }
     .member-more { margin: 4px 16px 16px; text-align: center; font-size: 11px; color: var(--grey-400); }
   </style>
@@ -803,10 +806,12 @@
 
     // ── Channel checkboxes (multi-select) ──
     function populateChannels(platforms, selected) {
-      const selSet = new Set(selected || []);
+      // เทียบแบบ uppercase — โปรฯ เก่าเซฟค่า platform แบบ mixed-case ไว้ (เช่น 'TikTok')
+      // ส่วน list ใหม่จาก GAS เป็น UPPERCASE แล้ว ไม่งั้นเปิดแก้โปรฯ เก่าแล้ว checkbox หลุด
+      const selSet = new Set((selected || []).map(function (s) { return String(s).toUpperCase(); }));
       const box = $('promo-channel-list');
       box.innerHTML = (platforms || []).map(function (p) {
-        const checked = selSet.has(p) ? ' checked' : '';
+        const checked = selSet.has(String(p).toUpperCase()) ? ' checked' : '';
         return '<label class="channel-chip"><input type="checkbox" value="' + esc(p) + '"' + checked + ' onchange="updateScopeSummary()"> ' + esc(friendlyChannel(p)) + '</label>';
       }).join('');
     }
