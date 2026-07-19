@@ -95,6 +95,16 @@ AAPC/
 
 **Rollback:** Deploy → Manage deployments → แก้ deployment เดิม → เปลี่ยน dropdown "Version" กลับไปเวอร์ชันก่อนหน้า → Deploy (ประวัติทุกเวอร์ชันเก็บไว้ให้เลือกอยู่แล้ว ไม่ต้องเขียนโค้ดย้อนกลับ)
 
+## Dev / Staging environment (พัฒนา/เทสขณะ LIFF live — ADR-021)
+
+เทส full flow ได้โดย push/แต้มเด้ง **เฉพาะ Dev** ไม่แตะลูกค้าจริง (ข้อมูลเทสเขียนชีต prod เดิม + allowlist)
+
+- **Backend:** `runBatchDevTest()` (`4_Service_Batch.gs`) อ่าน Script Property `DEV_USER_IDS` → รัน batch แบบ dev-only. prod trigger เรียก `runDailyBatch()` เปล่าตามเดิม (opts undefined = prod). **ห้ามผูก trigger กับ `runBatchDevTest`**
+- **Front-end:** `AAPC-index.html` มี `?env=dev` → ใช้ DEV LIFF + DEV GAS. ไม่มี param = prod เป๊ะ
+- **DEV GAS deployment:** `AKfycby4Fpz...` (versioned, public เพราะ appsscript.json = ANYONE_ANONYMOUS) · **DEV LIFF** `2010758448-JNGHoJCZ` (provider `atipa`) endpoint = `member.atipashop.com/AAPC-index.html?env=dev`
+- **รอบพัฒนา:** แก้ backend → `clasp push` (HEAD, prod `/exec` ไม่ขยับ) → รัน `runBatchDevTest()` ใน editor. แก้ front-end → branch `dev` → merge `main` (Pages เสิร์ฟ env-switch, inert สำหรับลูกค้า). ให้ DEV LIFF เห็น backend ใหม่ → `clasp deploy -i <DEV_deploymentId>` bump (prod นิ่ง)
+- **ข้อยกเว้น clasp deploy:** กฎ "ห้าม `clasp deploy`" ด้านบนคุ้มครอง **prod** deployment (รีเซ็ต access) — dev deployment เป็นตัวแยก สร้าง/bump ด้วย clasp deploy ได้ (ANYONE_ANONYMOUS auto)
+
 ## Testing
 
 - **`Agent_team/test_campaign.js`** — mocked-GAS harness รันนอก GAS จริง (`node test_campaign.js`) ไม่แตะชีต/เครือข่ายจริง โหลดโค้ดจาก `src/*.gs` เข้า vm sandbox แล้วจำลอง `SpreadsheetApp`/`PropertiesService`/`LockService` เอง ครอบ: engine คิดแต้ม, tier boundary, campaign CRUD, ช่องทาง — ก่อน push ทุกครั้งต้องผ่านครบ
@@ -122,6 +132,7 @@ AAPC/
 | `ADMIN_PASSWORD` | รหัสผ่านเข้า `admin.html` |
 | `LINE_CHANNEL_ACCESS_TOKEN` | ส่ง LINE push แจ้งเตือนลูกค้า |
 | `LOOKUP_TOKEN` | คุม endpoint `getLookupKeys` ที่ pipeline ฝั่ง Lenovo เรียก |
+| `DEV_USER_IDS` | userId (คั่น comma) ที่ `runBatchDevTest()` จะ process+push เฉพาะกลุ่มนี้ — ใช้เทส dev บนชีต prod โดยไม่แตะลูกค้า (ดู Dev/Staging ด้านล่าง) |
 
 ## Sheet ที่ใช้ (Google Sheet ID: ดู `AAPC_SHEET_ID` ใน `src/1_Config.gs`)
 
