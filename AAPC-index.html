@@ -1786,8 +1786,15 @@
     // ╰──────────────────────────────────────────────────────────╯
 
     // ── Config ──────────────────────────────────────────────────
-    const LIFF_ID = '2010755226-SXu9lcIU';
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyhuDE9-KVaxOKnneQXFVv0m9qFYoBQyJj1wGvIQzCgg1u3tI0kZq2BnB24-Y9-pvhyhg/exec';
+    // env-switch: เปิดด้วย ?env=dev → ใช้ DEV deployment + DEV LIFF (staging).
+    // ไม่มี param = prod เดิมเป๊ะ (ค่าคงที่ไม่เปลี่ยน). ดู specs/AAPC-liff-devlog.md
+    const ENV_DEV = new URLSearchParams(location.search).get('env') === 'dev';
+    const LIFF_ID = ENV_DEV
+      ? '2010758448-JNGHoJCZ'   // DEV LIFF (provider atipa) — staging
+      : '2010755226-SXu9lcIU';
+    const GAS_URL = ENV_DEV
+      ? 'https://script.google.com/macros/s/AKfycby4FpzwWn7q-N5HoThzTKUtaF193zbBxKSaoIY-oSqAxkEhd6qjgtL0QeXddPo4JOxocg/exec'   // DEV @34 (staging)
+      : 'https://script.google.com/macros/s/AKfycbyhuDE9-KVaxOKnneQXFVv0m9qFYoBQyJj1wGvIQzCgg1u3tI0kZq2BnB24-Y9-pvhyhg/exec';  // PROD @33
     const PROFILE_CACHE_KEY = 'aapc-profile-v1';
 
     // ── Dev Mode (localhost หรือ ?dev=1) ────────────────────────

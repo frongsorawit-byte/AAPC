@@ -2,7 +2,9 @@
 // Split from the former monolithic AAPC-code.gs (move-only, 2026-07-17). See ../README.md.
 
 // ─── sendPushNotifications ────────────────────────────────────────────────────
-function sendPushNotifications() {
+// opts (optional): { devOnly: true, devIds: Set<userId> } — ส่ง push เฉพาะ dev.
+//   undefined = prod behaviour (push หาทุกคนที่ processed วันนี้ ตามเดิม).
+function sendPushNotifications(opts) {
   const token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
   if (!token) { Logger.log('LINE_CHANNEL_ACCESS_TOKEN not set'); return; }
 
@@ -26,6 +28,7 @@ function sendPushNotifications() {
 
     const userId = String(row[COL.USER_ID] || '');
     if (!userId || userId === 'GUEST') continue;
+    if (opts && opts.devOnly && !opts.devIds.has(userId)) continue; // dev-only: push เฉพาะ dev
 
     if (!userMessages.has(userId)) userMessages.set(userId, []);
     userMessages.get(userId).push({

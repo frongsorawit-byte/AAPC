@@ -90,7 +90,9 @@ function logBatch(type, status, info) {
 }
 
 // ─── runDailyBatch (main) ─────────────────────────────────────────────────────
-function runDailyBatch() {
+// opts (optional): { devOnly: true, devIds: Set<userId> } — dev/staging test run.
+//   undefined = prod behaviour (unchanged). ตั้งได้เฉพาะผ่าน runBatchDevTest() เท่านั้น.
+function runDailyBatch(opts) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(LOCK_TIMEOUT_MS)) {
     logBatch('daily', 'skipped', { error: 'lock-not-acquired' });
@@ -146,6 +148,7 @@ function runDailyBatch() {
       const row = logData[i];
       const status = row[COL.STATUS];
       if (status !== 'รอตรวจ' && status !== 'Verifying') continue;
+      if (opts && opts.devOnly && !opts.devIds.has(String(row[COL.USER_ID] || '').trim())) continue; // dev-only: ข้าม non-dev
 
       processed++;
       const userId     = String(row[COL.USER_ID] || '').trim();
@@ -233,6 +236,7 @@ function runDailyBatch() {
         if (Date.now() - startTime > TIME_BUDGET_MS) { timedOut = true; break; }
         const row = logData[i];
         if (row[COL.STATUS] !== 'ได้แต้ม') continue;
+        if (opts && opts.devOnly && !opts.devIds.has(String(row[COL.USER_ID] || '').trim())) continue; // dev-only: ข้าม clawback non-dev
 
         const orderId    = normalizeId(row[COL.ORDER_ID]);
         const trackingNo = normalizeId(row[COL.TRACKING_NO]);
@@ -301,7 +305,7 @@ function runDailyBatch() {
     logBatch('daily', finalStatus, { processed: processed, awarded: awarded, failed: failed, clawback: clawback, error: timedOut ? 'time-budget-reached' : '' });
 
     // Send LINE push notifications (best-effort)
-    try { sendPushNotifications(); } catch (e) { Logger.log('push notify error: ' + e); }
+    try { sendPushNotifications(opts); } catch (e) { Logger.log('push notify error: ' + e); }
 
   } catch (e) {
     logBatch('daily', 'failed', { error: e.toString() });
@@ -309,6 +313,18 @@ function runDailyBatch() {
   } finally {
     lock.releaseLock();
   }
+}
+
+// ─── runBatchDevTest (manual only — dev/staging) ──────────────────────────────
+// เทส full batch โดย process + push เฉพาะ userId ใน Script Property DEV_USER_IDS
+// (คั่นด้วย comma). prod trigger ต้องเรียก runDailyBatch() เปล่าเท่านั้น —
+// ห้ามผูก time-trigger กับ function นี้ (จะกลายเป็น dev mode ถาวร).
+function runBatchDevTest() {
+  const raw = PropertiesService.getScriptProperties().getProperty('DEV_USER_IDS') || '';
+  const ids = raw.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  if (!ids.length) { Logger.log('runBatchDevTest: DEV_USER_IDS not set — abort'); return; }
+  Logger.log('runBatchDevTest: dev-only run for ' + ids.length + ' id(s): ' + ids.map(maskId).join(', '));
+  runDailyBatch({ devOnly: true, devIds: new Set(ids) });
 }
 
 // ─── applyPointsDeltaAndRecomputeTiers ────────────────────────────────────────
