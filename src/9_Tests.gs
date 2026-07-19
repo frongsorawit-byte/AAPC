@@ -222,3 +222,44 @@ function testRedeem() {
 
   Logger.log('testRedeem done — NOTE: leaves test rows (uid=' + uid + ') in Points_Master / Redemptions / Data_Log / Consent. ลบเองถ้าต้องการ.');
 }
+
+// ─── testPushToMe ─────────────────────────────────────────────────────────────
+// Manual test — รันใน Apps Script editor หลัง "เปิด LIFF ใหม่ + submit ออเดอร์ทดสอบ 1 ใบ"
+// พิสูจน์ moment of truth ของการย้าย OA: ยิง push จริงด้วย LINE_CHANNEL_ACCESS_TOKEN ปัจจุบัน
+// (= token ของ OA ร้าน Atipashop) ไปหา userId ล่าสุดใน Data_Log แล้วรายงาน HTTP status ให้ตีความ
+function testPushToMe() {
+  const token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+  if (!token) { Logger.log('❌ LINE_CHANNEL_ACCESS_TOKEN ไม่ได้ตั้งค่า'); return; }
+
+  const ss   = SpreadsheetApp.openById(AAPC_SHEET_ID);
+  const log  = ss.getSheetByName(SHEET_DATA_LOG);
+  const data = log ? log.getDataRange().getValues() : [];
+  let userId = '', name = '';
+  for (let i = data.length - 1; i >= 1; i--) {
+    const u = String(data[i][COL.USER_ID] || '').trim();
+    if (u && u !== 'GUEST') { userId = u; name = String(data[i][COL.DISPLAY_NAME] || ''); break; }
+  }
+  if (!userId) { Logger.log('❌ ไม่พบ userId ใน Data_Log — เปิด LIFF ใหม่แล้ว submit ออเดอร์ทดสอบ 1 ใบก่อน'); return; }
+
+  const masked = userId.length > 10 ? userId.slice(0, 6) + '…' + userId.slice(-4) : userId;
+  Logger.log('→ ส่ง push ทดสอบไปหา: ' + name + ' (' + masked + ')');
+
+  const resp = UrlFetchApp.fetch(LINE_PUSH_URL, {
+    method: 'post',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    payload: JSON.stringify({ to: userId, messages: [{ type: 'text',
+      text: '🎉 ทดสอบระบบบัตรสมาชิก ATIPA\nถ้าเห็นข้อความนี้ในแชทของร้าน = ระบบพร้อมเปิดใช้จริงแล้ว' }] }),
+    muteHttpExceptions: true,
+  });
+  const code = resp.getResponseCode();
+  Logger.log('LINE API status: ' + code);
+  Logger.log('LINE API body : ' + (resp.getContentText() || '(ว่าง = สำเร็จ)'));
+  if (code === 200) {
+    Logger.log('✅ ผ่าน — push ออกจาก OA ร้านสำเร็จ ไปเช็คมือถือว่าข้อความเด้งเข้าในนาม Atipashop');
+  } else {
+    Logger.log('❌ ไม่ผ่าน (status ' + code + ') — ดู body ข้างบน สาเหตุที่พบบ่อย:');
+    Logger.log('   (ก) userId คนละ provider กับ token — แต่เราสร้าง LIFF ใต้บ้าน atipa แล้ว ปกติไม่ควรเจอ');
+    Logger.log('   (ข) บัญชีนี้ยังไม่ได้เพิ่มเพื่อน OA Atipashop → เพิ่มเพื่อนก่อนแล้วรันใหม่');
+    Logger.log('   (ค) token copy มาไม่ครบ/ผิด → เช็ค Script Property LINE_CHANNEL_ACCESS_TOKEN');
+  }
+}
