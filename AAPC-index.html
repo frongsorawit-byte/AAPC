@@ -1490,7 +1490,7 @@
           <label class="input-label" for="collect-order">Order ID</label>
           <div class="input-wrapper has-scan">
             <input type="text" id="collect-order" class="text-input"
-              placeholder="เช่น 583650970173408913" inputmode="numeric" autocomplete="off">
+              placeholder="เช่น 583650970173408913 หรือ TH12AB34" autocomplete="off">
             <button class="scan-btn hidden" id="scan-order-btn" onclick="scanBarcode('order')"
               aria-label="สแกน Order ID ด้วยกล้อง" title="สแกน Order ID ด้วยกล้อง">
               <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1867,7 +1867,7 @@
 
     // ── Validation (Phase 1: client-side; server validates again in Phase 2) ──
     const VALIDATION = {
-      orderId: { pattern: /^\d{6,30}$/, msg: 'Order ID ต้องเป็นตัวเลข 6–30 หลัก' },
+      orderId: { pattern: /^[A-Za-z0-9\-_.]{6,40}$/, msg: 'Order ID ไม่ถูกต้อง (6–40 ตัวอักษร/ตัวเลข)' },
       track:   { pattern: /^[A-Za-z0-9\-_.]{4,60}$/, msg: 'Tracking Number ไม่ถูกต้อง (4–60 ตัวอักษร/ตัวเลข)' },
     };
 
