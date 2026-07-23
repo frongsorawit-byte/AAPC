@@ -55,6 +55,7 @@ AAPC/
 | เวลาที่ตัวตรวจแต้มรันทุกวัน (ปัจจุบัน 17:00) | `src/7_Triggers.gs` → `installTriggers` | แก้แล้ว**ต้องรัน `installTriggers()` ใหม่ในตัว editor** — redeploy อย่างเดียวไม่พอ (ตัว trigger ผูกไว้ล่วงหน้าแล้ว) |
 | ให้ออเดอร์ค้าง "Verifying" ได้กี่วันก่อนตัดเป็นไม่ผ่าน | `src/1_Config.gs` → `VERIFYING_TIMEOUT_MS` | ปัจจุบัน 7 วัน |
 | เก็บ Order_Verification ย้อนหลังกี่วัน | `src/1_Config.gs` → `ORDER_VERIFICATION_KEEP_DAYS` | ใช้ใน `cleanOldOrders` (ทำงานทุกวันอาทิตย์ 02:00) |
+| เก็บไฟล์ backup ชีตลูกค้าย้อนหลังกี่วัน | `src/1_Config.gs` → `BACKUP_KEEP_DAYS` | ใช้ใน `runDailyBackup` (ทำงานทุกวัน 02:00 → โฟลเดอร์ `AAPC_Backups` บน Drive) เก่ากว่านี้ย้ายลงถังขยะ |
 | ช่องทางสั่งซื้อ (LINE/TikTok/Shopee/...) ที่โชว์ใน checkbox โปรฯ | `src/4_Service_Admin.gs` → `KNOWN_PLATFORMS`, `_distinctOrderPlatforms` | ชื่อ label ที่โชว์ในแอดมินแก้ที่ `admin.html` → `CHANNEL_LABELS` — ชื่อร้านต้อง**ตรงกับที่ JSTERP ส่งมาจริง** (คอลัมน์ `ชื่อร้านค้า`/shop_name) เช็คกับข้อมูลจริงก่อนเพิ่ม |
 | โปรโมชั่น/แคมเปญ (สร้าง/แก้/ลบ) | `src/4_Service_Admin.gs` → `actionAdminSaveCampaign`/`actionAdminListCampaigns`/`actionAdminDeleteCampaign` + `admin.html` (ฟอร์ม) | |
 | การแลกแต้มเป็นคูปอง / อายุคูปอง | `src/4_Service_Redeem.gs` + `src/1_Config.gs` → `REDEEM_RATE`, `COUPON_EXPIRY_DAYS` | |
@@ -76,6 +77,8 @@ AAPC/
 | `4_Service_Redeem.gs` | แลกแต้มเป็นคูปอง: `genCouponCode`, `actionRedeem`, `actionGetCoupons` |
 | `4_Service_Admin.gs` | หลังบ้านของ `admin.html`: auth, ค้นหาสมาชิก, ตรวจ/ใช้คูปอง, CRUD โปรโมชั่น, รายชื่อช่องทาง |
 | `4_Service_Push.gs` | ส่ง LINE push หลัง batch รันเสร็จ |
+| `4_Service_Backup.gs` | สำรองชีตลูกค้าทั้งไฟล์ลง Drive ทุกวัน: `runDailyBackup` (trigger 02:00), retention rolling `BACKUP_KEEP_DAYS` วัน, `actionAdminRunBackup` (ปุ่ม backup-now) — **ใช้ `DriveApp`** (scope ใหม่ ต้อง authorize ครั้งแรก) |
+| `4_Service_System.gs` | หลังบ้านแผงควบคุม (Task Dashboard): `isPaused` (อ่าน flag), `actionAdminGetSystemStatus`, `actionAdminSetFlag` (allowlist `AAPC_SETTABLE_FLAGS` เท่านั้น), `actionAdminSetDevUserIds`, `actionAdminRunDevBatch` |
 | `5_Controller.gs` | `doGet`/`doPost` routing + action สาธารณะ: getProfile, getHistory, checkDuplicate, saveOrderData, consent, getLookupKeys |
 | `6_Security.gs` | ตรวจสิทธิ์แอดมิน (`isAdminOk`) — Phase 4b จะเพิ่ม `maskId()` ที่นี่สำหรับ mask PII ก่อน log |
 | `7_Triggers.gs` | `installTriggers()` — ติดตั้ง time-based trigger (รันเองครั้งเดียวตอน setup หรือหลังแก้เวลา trigger) |
@@ -86,7 +89,7 @@ AAPC/
 **ลำดับสำคัญ: แก้ GAS ก่อนเสมอ แล้วค่อย push HTML** — ถ้าสลับกัน หน้าเว็บที่เรียก action ใหม่จะเจอ `unknown action` เพราะ HTML ไปสดกว่า GAS
 
 1. แก้โค้ดใน `src/*.gs` (ไฟล์ไหนดูตารางด้านบน)
-2. รัน `node test_campaign.js` ใน repo `Agent_team` ให้ผ่านครบก่อน (ปัจจุบัน 67/67)
+2. รัน `node test_campaign.js` ใน repo `Agent_team` ให้ผ่านครบก่อน (ปัจจุบัน 80/80)
 3. `clasp push` จากโฟลเดอร์นี้ (ต้องมี `.clasp.json` ผูก Script ID ไว้แล้ว) — **ใช้ `clasp push` เท่านั้น ห้ามใช้ `clasp deploy`** (คำสั่งนั้นจะรีเซ็ตสิทธิ์เข้าถึง web app ต้องตั้งค่าใหม่ทุกครั้ง)
 4. เปิด Apps Script editor เช็คว่าไฟล์ครบตามที่ push ไป, รัน `test*()` ที่เกี่ยวข้องดู Logger
 5. Deploy → Manage deployments → ปุ่มดินสอ ✏️ ที่ deployment เดิม → เลือก **New version** → Deploy (URL `/exec` เดิมไม่เปลี่ยน)
@@ -121,9 +124,10 @@ AAPC/
 
 ชื่อ `action` และ shape ของ JSON response มีผู้ใช้งานอยู่ **นอก repo นี้ 3 จุด** ถ้าจะเปลี่ยนชื่อ field หรือชื่อ action ต้องไล่เช็ค/แก้ทั้ง 3 จุดพร้อมกัน:
 
-1. **`AAPC-index.html`** (LIFF, repo นี้) — เรียกผ่าน `GAS_URL`
+1. **`AAPC-index.html`** (LIFF, repo นี้) — เรียกผ่าน `GAS_URL`; รับ `{status:'error', code:'maintenance', message}` เมื่อ intake/redeem ถูกพัก (แสดง `message` ให้ลูกค้า)
 2. **`admin.html`** (repo นี้) — เรียกผ่าน `GAS_URL` เดียวกัน
 3. **`Agent_team/tools/aapc_targeted_sync.py`** (คนละ repo, รันบนเครื่อง Lenovo) — เรียก `action=getLookupKeys` ทุกคืน 23:30 ด้วย `LOOKUP_TOKEN`
+4. **Task Dashboard** (`Agent_team/tools/task_dashboard/`, เครื่อง Lenovo) — proxy ไป doPost `type` ใหม่: `adminGetSystemStatus`, `adminSetFlag`, `adminSetDevUserIds`, `adminRunDevBatch`, `adminRunBackup` (ทุกตัวแนบ `password` = Script Property `ADMIN_PASSWORD`)
 
 ## Script Properties ที่ต้องตั้งไว้ (Apps Script → Project Settings → Script Properties)
 
@@ -133,6 +137,9 @@ AAPC/
 | `LINE_CHANNEL_ACCESS_TOKEN` | ส่ง LINE push แจ้งเตือนลูกค้า |
 | `LOOKUP_TOKEN` | คุม endpoint `getLookupKeys` ที่ pipeline ฝั่ง Lenovo เรียก |
 | `DEV_USER_IDS` | userId (คั่น comma) ที่ `runBatchDevTest()` จะ process+push เฉพาะกลุ่มนี้ — ใช้เทส dev บนชีต prod โดยไม่แตะลูกค้า (ดู Dev/Staging ด้านล่าง) |
+| `AAPC_BACKUP_FOLDER_ID` | **ตั้งอัตโนมัติ** โดย `runDailyBackup` (id โฟลเดอร์ `AAPC_Backups` บน Drive) — ไม่ต้องตั้งเอง; ลบทิ้งได้ถ้าอยากให้สร้างโฟลเดอร์ใหม่ |
+| `AAPC_LAST_BACKUP` | **ตั้งอัตโนมัติ** — JSON `{at,name,kept}` ของ backup ล่าสุด (แผงควบคุมอ่านไปโชว์สถานะ) |
+| `AAPC_PAUSE_BATCH` / `AAPC_PAUSE_PUSH` / `AAPC_PAUSE_INTAKE` / `AAPC_PAUSE_REDEEM` | **คุมผ่านแผงควบคุม** (`actionAdminSetFlag`) — ค่า `'1'` = พักส่วนนั้น, ไม่มี key = ทำงานปกติ (fail-open). อย่าตั้งมือถ้าไม่จำเป็น; เปิด/ปิดจาก Task Dashboard สะดวกกว่า |
 
 ## Sheet ที่ใช้ (Google Sheet ID: ดู `AAPC_SHEET_ID` ใน `src/1_Config.gs`)
 

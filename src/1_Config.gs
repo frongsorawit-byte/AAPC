@@ -11,6 +11,7 @@
  *   runDailyBatch()    — daily 17:00, match Data_Log ↔ Order_Verification
  *                        award/reject/clawback, send LINE push
  *   cleanOldOrders()   — Sunday 02:00, delete Order_Verification rows > 60 days
+ *   runDailyBackup()   — daily 02:00, snapshot spreadsheet → Drive folder AAPC_Backups
  *
  * One-time setup:
  *   setupSchemaPhase2() — migrate sheets to Phase 2 schema (idempotent)
@@ -114,6 +115,21 @@ const RD_HEADERS = ['UserID','DisplayName','Code','Units','Value','RequestId','I
 // Consent columns (0-based)
 const CN = { USER_ID: 0, DISPLAY_NAME: 1, VERSION: 2, CONSENTED_AT: 3 };
 const CN_HEADERS = ['UserID','DisplayName','ConsentVersion','ConsentedAt'];
+
+// ─── Control Panel — feature flags (4_Service_System.gs) ──────────────────────
+// flag ใน Script Properties: ค่า '1' = พักการทำงานส่วนนั้น; ไม่มี property/ค่าอื่น = ทำงานปกติ
+// (fail-open — property หาย = ระบบเดินปกติ). อ่านผ่าน isPaused() เท่านั้น.
+// AAPC_SETTABLE_FLAGS = allowlist เดียวที่ actionAdminSetFlag ยอมเขียน — กัน endpoint เขียนทับ
+// ADMIN_PASSWORD / LINE_CHANNEL_ACCESS_TOKEN / LOOKUP_TOKEN ที่อยู่ property store เดียวกัน.
+const AAPC_SETTABLE_FLAGS = ['AAPC_PAUSE_BATCH', 'AAPC_PAUSE_PUSH', 'AAPC_PAUSE_INTAKE', 'AAPC_PAUSE_REDEEM'];
+const MAINTENANCE_MSG_INTAKE = 'ระบบปิดปรับปรุงชั่วคราว ยังบันทึกเลขออเดอร์ไม่ได้ กรุณาลองใหม่ภายหลังนะคะ 🙏';
+const MAINTENANCE_MSG_REDEEM = 'ระบบแลกคูปองปิดปรับปรุงชั่วคราว กรุณาลองใหม่ภายหลังนะคะ (แต้มของคุณยังอยู่ครบ) 🙏';
+
+// ─── Daily Backup (4_Service_Backup.gs) ──────────────────────────────────────
+// สำรองชีตลูกค้าทั้งไฟล์ลง Drive ทุกวัน กันเผลอลบ/แก้ชีตจริง — เก็บแบบ rolling
+const BACKUP_KEEP_DAYS   = 7;               // เก็บ backup ย้อนหลังกี่วัน (เก่ากว่านี้ → ถังขยะ)
+const BACKUP_NAME_PREFIX = 'AAPC_Backup_';  // ชื่อไฟล์ = prefix + yyyy-MM-dd_HHmm
+const BACKUP_FOLDER_NAME = 'AAPC_Backups';  // โฟลเดอร์ปลายทางบน Drive (สร้างอัตโนมัติ, cache id)
 
 // ─── Tier Config — SINGLE SOURCE OF TRUTH (thresholds + discount %) ──────────
 // แก้ระดับ/เปอร์เซ็นต์ส่วนลดที่ array นี้ที่เดียว แล้ว redeploy — frontend ดึงผ่าน getProfile.tierTable

@@ -7,7 +7,7 @@ function installTriggers() {
   const existing = ScriptApp.getProjectTriggers();
   for (let i = 0; i < existing.length; i++) {
     const fn = existing[i].getHandlerFunction();
-    if (fn === 'runDailyBatch' || fn === 'cleanOldOrders') {
+    if (fn === 'runDailyBatch' || fn === 'cleanOldOrders' || fn === 'runDailyBackup') {
       ScriptApp.deleteTrigger(existing[i]);
     }
   }
@@ -15,5 +15,7 @@ function installTriggers() {
   ScriptApp.newTrigger('runDailyBatch').timeBased().atHour(17).everyDays(1).inTimezone('Asia/Bangkok').create();
   // Sunday 02:00 → cleanOldOrders
   ScriptApp.newTrigger('cleanOldOrders').timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(2).inTimezone('Asia/Bangkok').create();
-  Logger.log('Triggers installed: runDailyBatch (daily 17:00), cleanOldOrders (Sun 02:00) — Asia/Bangkok');
+  // Daily 02:00 → runDailyBackup (สำรองชีตลูกค้า — เลี่ยงเวลาเขียน: batch 17:00, sync JSTERP 23:30)
+  ScriptApp.newTrigger('runDailyBackup').timeBased().atHour(2).everyDays(1).inTimezone('Asia/Bangkok').create();
+  Logger.log('Triggers installed: runDailyBatch (daily 17:00), cleanOldOrders (Sun 02:00), runDailyBackup (daily 02:00) — Asia/Bangkok');
 }

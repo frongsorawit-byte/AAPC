@@ -2160,7 +2160,7 @@
         const result = await API.submitOrder(payload);
         console.log('[AAPC] submitOrder result:', result);
         if (!result || result.status !== 'success') {
-          throw new Error(result && result.message || 'submit failed');
+          throw Object.assign(new Error(result && result.message || 'submit failed'), { code: result && result.code });
         }
         showCollectStatus(
           'บันทึกเรียบร้อย — ระบบจะตรวจสอบและแจ้งผลทาง LINE ภายใน 1–2 วันทำการ',
@@ -2170,7 +2170,8 @@
         trackEl.value = '';
         state.history = null; // invalidate cache
       } catch (err) {
-        showCollectStatus(friendlyError(err), 'error');
+        // code==='maintenance' → ระบบถูกพักจากแผงควบคุม แสดงข้อความสุภาพจาก server ตรงๆ
+        showCollectStatus(err && err.code === 'maintenance' ? err.message : friendlyError(err), 'error');
       }
 
       resetSubmitBtn();
@@ -2438,7 +2439,7 @@
         } else {
           res = await API.redeem(payload);
         }
-        if (!res || res.status !== 'success') throw new Error((res && res.message) || 'redeem failed');
+        if (!res || res.status !== 'success') throw Object.assign(new Error((res && res.message) || 'redeem failed'), { code: res && res.code });
 
         if (typeof res.redeemable === 'number' && state.gasProfile) state.gasProfile.redeemable = res.redeemable;
         if (state.coupons === null) state.coupons = [];
@@ -2456,8 +2457,12 @@
         if (state.gasProfile) renderDashboard(state.gasProfile); // refresh member-card callout
       } catch (err) {
         closeConfirm();
-        const m = (err && err.message) || '';
-        showToast(m.indexOf('แต้ม') >= 0 ? m : ('แลกไม่สำเร็จ — ' + friendlyError(err)));
+        if (err && err.code === 'maintenance') {  // ระบบแลกคูปองถูกพักจากแผงควบคุม
+          showToast(err.message);
+        } else {
+          const m = (err && err.message) || '';
+          showToast(m.indexOf('แต้ม') >= 0 ? m : ('แลกไม่สำเร็จ — ' + friendlyError(err)));
+        }
       }
 
       btn.disabled = false; btn.textContent = 'ยืนยันแลกแต้ม';

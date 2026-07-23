@@ -80,6 +80,8 @@ function sendPushNotifications(opts) {
 }
 
 function _linePush(userId, token, text) {
+  // Control-panel: พักส่งข้อความหาลูกค้าทุกทาง (สรุปแต้มหลัง batch + คูปองตอน redeem)
+  if (isPaused('AAPC_PAUSE_PUSH')) { Logger.log('push paused (flag) — skip ' + maskId(userId)); return; }
   try {
     UrlFetchApp.fetch(LINE_PUSH_URL, {
       method: 'post',

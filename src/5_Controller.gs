@@ -12,6 +12,7 @@ function doGet(e) {
     else if (action === 'getCoupons')     result = actionGetCoupons(e.parameter.userId);
     else if (action === 'getConsent')     result = actionGetConsent(e.parameter.userId);
     else if (action === 'getLookupKeys')  result = actionGetLookupKeys(e.parameter);
+    else if (action === 'ping')           result = { pong: true, build: 'control-panel-2026-07-23', hasControlPanel: true };
     else                                  result = { error: 'unknown action: ' + action };
   } catch (err) {
     result = { error: err.toString() };
@@ -123,7 +124,9 @@ function doPost(e) {
     Logger.log('doPost type=' + type + ' userId=' + maskId(data && data.userId));
     let resp;
     if (type === 'redeem') {
-      resp = actionRedeem(data);
+      resp = isPaused('AAPC_PAUSE_REDEEM')
+        ? { status: 'error', code: 'maintenance', message: MAINTENANCE_MSG_REDEEM }
+        : actionRedeem(data);
     } else if (type === 'consent') {
       resp = actionSetConsent(data);
     } else if (type === 'adminAuth') {
@@ -140,6 +143,18 @@ function doPost(e) {
       resp = actionAdminSaveCampaign(data);
     } else if (type === 'adminDeleteCampaign') {
       resp = actionAdminDeleteCampaign(data);
+    } else if (type === 'adminGetSystemStatus') {
+      resp = actionAdminGetSystemStatus(data);
+    } else if (type === 'adminSetFlag') {
+      resp = actionAdminSetFlag(data);
+    } else if (type === 'adminSetDevUserIds') {
+      resp = actionAdminSetDevUserIds(data);
+    } else if (type === 'adminRunDevBatch') {
+      resp = actionAdminRunDevBatch(data);
+    } else if (type === 'adminRunBackup') {
+      resp = actionAdminRunBackup(data);
+    } else if (isPaused('AAPC_PAUSE_INTAKE')) {
+      resp = { status: 'error', code: 'maintenance', message: MAINTENANCE_MSG_INTAKE };
     } else {
       saveOrderData(data);
       ensurePointsMasterRow(data);

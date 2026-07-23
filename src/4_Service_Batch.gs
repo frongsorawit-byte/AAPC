@@ -103,6 +103,11 @@ function runDailyBatch(opts) {
   const now = new Date();
 
   try {
+    // Control-panel kill-switch — พักเฉพาะ prod (dev test ผ่าน runBatchDevTest ยังรันได้ตามปกติ)
+    if (!(opts && opts.devOnly) && isPaused('AAPC_PAUSE_BATCH')) {
+      logBatch('daily', 'skipped', { error: 'paused-by-flag' });
+      return;
+    }
     const ss = SpreadsheetApp.openById(AAPC_SHEET_ID);
     const logSheet = ss.getSheetByName(SHEET_DATA_LOG);
     const pmSheet  = ss.getSheetByName(SHEET_POINTS);

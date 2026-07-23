@@ -263,3 +263,62 @@ function testPushToMe() {
     Logger.log('   (ค) token copy มาไม่ครบ/ผิด → เช็ค Script Property LINE_CHANNEL_ACCESS_TOKEN');
   }
 }
+
+// ─── testBackup ───────────────────────────────────────────────────────────────
+// Manual test — รันใน Apps Script editor (ครั้งแรกจะขอ Authorize Drive scope — กดอนุญาต).
+// พิสูจน์: (1) runDailyBackup() สร้างโฟลเดอร์+copy จริง, (2) retention ย้ายไฟล์เก่า (วันที่ในชื่อ
+// เกิน BACKUP_KEEP_DAYS) ลงถังขยะ, (3) property AAPC_LAST_BACKUP ถูกบันทึก.
+function testBackup() {
+  const info = runDailyBackup(); // ครั้งแรก: สร้างโฟลเดอร์ + copy จริง + set folder-id property
+  Logger.log('1) runDailyBackup → ' + JSON.stringify(info));
+
+  const props  = PropertiesService.getScriptProperties();
+  const folder = DriveApp.getFolderById(props.getProperty('AAPC_BACKUP_FOLDER_ID'));
+
+  // seed ไฟล์ dummy ที่ "เก่า" (วันที่ในชื่อ = 2020-01-01) → รอบถัดไปต้องโดน trash
+  const oldName = BACKUP_NAME_PREFIX + '2020-01-01_0000';
+  folder.createFile(oldName, 'dummy-old-backup');
+
+  const info2 = runDailyBackup();
+  Logger.log('2) runDailyBackup รอบสอง → ' + JSON.stringify(info2));
+
+  // getFiles() ไม่คืนไฟล์ใน trash → ถ้า prune ทำงาน dummy เก่าจะไม่โผล่ (oldTrashed คงเป็น true)
+  let oldTrashed = true, freshCount = 0;
+  const it = folder.getFiles();
+  while (it.hasNext()) {
+    const f = it.next();
+    if (f.getName() === oldName) oldTrashed = false;
+    if (f.getName().indexOf(BACKUP_NAME_PREFIX) === 0) freshCount++;
+  }
+  Logger.log((oldTrashed ? '✓' : '✗') + ' dummy เก่า (2020-01-01) ถูกย้ายลงถังขยะ');
+  Logger.log('✓ backup ปัจจุบันในโฟลเดอร์ (ไม่นับ trash) = ' + freshCount + ' ไฟล์');
+  Logger.log('lastBackup property → ' + props.getProperty('AAPC_LAST_BACKUP'));
+  Logger.log('testBackup done — NOTE: โฟลเดอร์ ' + BACKUP_FOLDER_NAME + ' มี copy ทดสอบจริง ลบเองได้ถ้าต้องการ');
+}
+
+// ─── testSystemFlags ──────────────────────────────────────────────────────────
+// Manual test — control-panel flags. ปิดท้ายด้วยการเคลียร์ flag ทุกตัวกลับสู่ปกติ.
+function testSystemFlags() {
+  const pwd = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD') || 'SET_ME';
+  function log(ok, label) { Logger.log((ok ? '✓ ' : '✗ ') + label); }
+
+  log(actionAdminSetFlag({ password: 'WRONG', key: 'AAPC_PAUSE_PUSH', value: '1' }).code === 'auth', 'wrong password → auth');
+  log(actionAdminSetFlag({ password: pwd, key: 'ADMIN_PASSWORD', value: '1' }).code === 'badkey', 'ADMIN_PASSWORD → badkey (allowlist กัน)');
+  log(actionAdminSetFlag({ password: pwd, key: 'LINE_CHANNEL_ACCESS_TOKEN', value: 'x' }).code === 'badkey', 'LINE token → badkey');
+
+  AAPC_SETTABLE_FLAGS.forEach(function (k) {
+    actionAdminSetFlag({ password: pwd, key: k, value: '1' });
+    const on = isPaused(k);
+    actionAdminSetFlag({ password: pwd, key: k, value: '0' });
+    const off = !isPaused(k);
+    log(on && off, k + ' → set=พัก, unset=ปกติ');
+  });
+
+  log(actionAdminSetDevUserIds({ password: pwd, devUserIds: 'U123,bad' }).code === 'badids', 'dev id ผิดรูปแบบ → badids');
+
+  const st = actionAdminGetSystemStatus({ password: pwd });
+  const allOff = AAPC_SETTABLE_FLAGS.every(function (k) { return st.flags[k] === false; });
+  log(st.status === 'ok' && allOff, 'getSystemStatus ok + flag ทุกตัว false (เคลียร์เรียบร้อย)');
+  Logger.log('status snapshot → ' + JSON.stringify(st));
+  Logger.log('testSystemFlags done — flag ทุกตัวถูกเคลียร์กลับสู่ปกติแล้ว');
+}
